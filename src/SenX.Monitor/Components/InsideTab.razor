@@ -1,0 +1,263 @@
+@using System.Globalization
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using SenX.Monitor.Contracts
+@implements IDisposable
+@inject IMonitorServers Servers
+@inject IAuthorizationService Authorization
+@inject AuthenticationStateProvider Authentication
+
+<p class="monitor-hint">Looks inside a plugin, a mod or the game by timing what a method calls, with no help from whoever wrote it. This rebuilds the method while the server runs, so it takes a moment on the game thread, and it comes out by itself. It stops early if the timing costs too much.</p>
+
+@if (!_canDrill)
+{
+    <p class="monitor-notice">This needs permission to control servers.</p>
+}
+else
+{
+    <div class="monitor-row">
+        <label>Find <input type="search" @bind="_search" /></label>
+        <button type="button" @onclick="SearchAsync">Search</button>
+        <label>Time for <input type="number" min="1" max="120" @bind="_seconds" /> seconds</label>
+    </div>
+
+    @if (_message != null)
+    {
+        <p class="monitor-notice">@_message</p>
+    }
+
+    @if (_roots.Count > 0 && _result == null && !_running)
+    {
+        <table class="monitor-table">
+            <thead><tr><th>Method</th><th>Whose</th><th></th></tr></thead>
+            <tbody>
+                @foreach (DrillRoot root in _roots)
+                {
+                    <tr>
+                        <td>@root.Name</td>
+                        <td>@root.Owner</td>
+                        <td class="monitor-actions"><button type="button" @onclick="() => DrillAsync(root.Id, root.Name)">Look inside</button></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+
+    @if (_trail.Count > 0)
+    {
+        <p class="monitor-hint">
+            @foreach ((string id, string name) in _trail.ToList())
+            {
+                <button type="button" class="monitor-entity-action" disabled="@_running" @onclick="() => BackToAsync(id, name)">@name</button>
+            }
+        </p>
+    }
+
+    @if (_running)
+    {
+        <p class="monitor-hint">Timing what @_trail[^1].Name calls.</p>
+    }
+
+    @if (_result is { } result)
+    {
+        <div class="monitor-tiles">
+            <div class="monitor-stat"><span>Calls</span><b>@Num(result.CallsPerFrame, "0.##")/f</b></div>
+            <div class="monitor-stat"><span>Main</span><b>@Num(result.MainMs, "0.00") ms/f</b></div>
+            <div class="monitor-stat"><span>Workers</span><b>@Num(result.WorkerMs, "0.00") ms/f</b></div>
+            <div class="monitor-stat" title="Main thread time not in anything it called."><span>Its own work</span><b>@Num(result.SelfMs, "0.00") ms/f</b></div>
+            <div class="monitor-stat"><span>Peak</span><b>@Num(result.PeakMs, "0.00") ms</b></div>
+            <div class="monitor-stat"><span>Timing added</span><b>@Num(result.TimingMsPerFrame, "0.00") ms/f</b></div>
+        </div>
+
+        @if (result.CallsPerFrame == 0d)
+        {
+            <p class="monitor-notice">It never ran in that time, or the compiler built it into whatever calls it. Try looking inside the caller.</p>
+        }
+
+        @if (result.EndedEarly)
+        {
+            <p class="monitor-notice">It stopped early, because timing this was costing the server too much.</p>
+        }
+        else if (result.Inflated)
+        {
+            <p class="monitor-notice">Timing added enough here that these figures read high.</p>
+        }
+
+        @if (result.SkippedSites > 0)
+        {
+            <p class="monitor-hint">@result.SkippedSites calls were left out, because this makes too many different ones to track.</p>
+        }
+
+        <table class="monitor-table">
+            <thead><tr><th>Calls</th><th>Whose</th><th>Calls/f</th><th>Main ms/f</th><th>Workers ms/f</th><th>Peak ms</th><th>Thread</th><th></th></tr></thead>
+            <tbody>
+                @foreach (DrillRow row in result.Rows)
+                {
+                    <tr>
+                        <td title="@row.Name">@row.Name</td>
+                        <td>@row.Owner</td>
+                        <td>@Num(row.CallsPerFrame, "0.##")</td>
+                        <td>@Num(row.MainMs, "0.00")</td>
+                        <td>@Num(row.WorkerMs, "0.00")</td>
+                        <td>@Num(row.PeakMs, "0.00")</td>
+                        <ThreadCell Main="row.MainMs" Worker="row.WorkerMs" />
+                        <td class="monitor-actions">
+                            @if (row.Id.Length > 0)
+                            {
+                                <button type="button" disabled="@_running" @onclick="() => DrillAsync(row.Id, row.Name)">Look inside</button>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+
+        <p class="monitor-hint">Time spent on other threads through tasks or timers shows as the call that started them, not the work itself.</p>
+    }
+}
+
+@code {
+    private static readonly TimeSpan s_pollEvery = TimeSpan.FromSeconds(1);
+
+    private readonly CancellationTokenSource _closing = new();
+    private readonly List<(string Id, string Name)> _trail = [];
+    private List<DrillRoot> _roots = [];
+    private DrillResultResponse? _result;
+    private string _search = string.Empty;
+    private string? _message;
+    private string? _loadedServer;
+    private string? _loadedSearch;
+    private int _seconds = 10;
+    private bool _canDrill;
+    private bool _running;
+
+    [Parameter, EditorRequired] public MonitorServer Server { get; set; } = null!;
+
+    /// <summary>What to start with, when another tab sent someone here.</summary>
+    [Parameter] public string? StartWith { get; set; }
+
+    protected override async Task OnInitializedAsync() => _canDrill = await MayDrillAsync();
+
+    protected override async Task OnParametersSetAsync()
+    {
+        bool newServer = Server.HistoryId != _loadedServer;
+
+        if (newServer)
+        {
+            _loadedServer = Server.HistoryId;
+            _roots = [];
+            _result = null;
+            _trail.Clear();
+            _message = null;
+        }
+
+        if (StartWith != null && StartWith != _loadedSearch)
+        {
+            _loadedSearch = StartWith;
+            _search = StartWith;
+            await SearchAsync();
+        }
+        else if (newServer)
+        {
+            await SearchAsync();
+        }
+    }
+
+    private async Task SearchAsync()
+    {
+        // It takes a game frame, so someone who can only view shouldn't cost the server one.
+        if (!_canDrill)
+            return;
+
+        _result = null;
+        _trail.Clear();
+
+        try
+        {
+            _roots = (await Servers.DrillRootsAsync(Server.Id, new DrillRootsRequest { Text = _search }, _closing.Token)).Roots;
+            _message = _roots.Count == 0 ? "Nothing matches that." : null;
+        }
+        catch (Exception exception) when (exception is InvalidOperationException or TimeoutException)
+        {
+            _message = "The server didn't answer: " + exception.Message;
+        }
+        catch (OperationCanceledException)
+        {
+            // The page closed.
+        }
+    }
+
+    private async Task<bool> MayDrillAsync()
+    {
+        AuthenticationState state = await Authentication.GetAuthenticationStateAsync();
+        return (await Authorization.AuthorizeAsync(state.User, MonitorPolicies.Control)).Succeeded;
+    }
+
+    private Task BackToAsync(string id, string name)
+    {
+        int index = _trail.FindIndex(step => step.Id == id);
+
+        if (index >= 0)
+            _trail.RemoveRange(index, _trail.Count - index);
+
+        return DrillAsync(id, name);
+    }
+
+    private async Task DrillAsync(string id, string name)
+    {
+        // A hidden button isn't access control, and this rebuilds a method on a running server.
+        if (_running || !await MayDrillAsync())
+            return;
+
+        _running = true;
+        _message = null;
+        _result = null;
+        _trail.Add((id, name));
+
+        try
+        {
+            var request = new DrillStartRequest { Id = id, Seconds = Math.Clamp(_seconds, 1, 120) };
+            DrillStartResponse started = await Servers.StartDrillAsync(Server.Id, request, _closing.Token);
+
+            if (!started.Started)
+            {
+                _message = started.Message ?? "It didn't start.";
+                _trail.RemoveAt(_trail.Count - 1);
+                return;
+            }
+
+            while (true)
+            {
+                await Task.Delay(s_pollEvery, _closing.Token);
+
+                DrillResultResponse result = await Servers.DrillResultAsync(Server.Id, new DrillResultRequest(), _closing.Token);
+
+                if (result.State == RunState.Running)
+                    continue;
+
+                _result = result;
+                return;
+            }
+        }
+        catch (Exception exception) when (exception is InvalidOperationException or TimeoutException)
+        {
+            _message = "The server stopped answering: " + exception.Message;
+        }
+        catch (OperationCanceledException)
+        {
+            // The page closed, and the drill-down comes out by itself.
+        }
+        finally
+        {
+            _running = false;
+        }
+    }
+
+    private static string Num(double value, string format) => value.ToString(format, CultureInfo.InvariantCulture);
+
+    public void Dispose()
+    {
+        _closing.Cancel();
+        _closing.Dispose();
+    }
+}

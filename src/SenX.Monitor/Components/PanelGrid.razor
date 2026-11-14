@@ -1,0 +1,67 @@
+@using Microsoft.JSInterop
+@using SenX.Monitor.Contracts
+@implements IAsyncDisposable
+@inject IJSRuntime JS
+@inject NavigationManager Navigation
+@inject MonitorAssets Files
+
+@* Lists as panels in two stacks, side by side on a wide screen and one above the other on a narrow one. A heading opens and closes its panel, and the browser remembers which are open. *@
+<div class="monitor-panels" @ref="_root">
+    @foreach (List<PanelItem> stack in PanelStacks.Split(Items, item => item.Rows, item => item.Group))
+    {
+        <div class="monitor-panel-stack">
+            @foreach (PanelItem item in stack)
+            {
+                string name = Page + "." + item.Title;
+
+                <details class="monitor-panel" data-panel="@name" open @key="name">
+                    <summary><h2>@item.Title</h2></summary>
+                    <div class="monitor-panel-body">@item.Content</div>
+                </details>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    private ElementReference _root;
+    private IJSObjectReference? _module;
+
+    /// <summary>One list. Rows say how tall it is, to balance the stacks. Items with the same group stay together.</summary>
+    public sealed record PanelItem(string Title, int Rows, RenderFragment Content, string? Group = null);
+
+    /// <summary>Which page this is, so the same list on two pages remembers its own state.</summary>
+    [Parameter, EditorRequired] public string Page { get; set; } = string.Empty;
+
+    [Parameter, EditorRequired] public IReadOnlyList<PanelItem> Items { get; set; } = [];
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+            return;
+
+        try
+        {
+            _module = await JS.InvokeAsync<IJSObjectReference>("import", Navigation.ToAbsoluteUri(Files.Base + "monitor-panels.js").ToString());
+            await _module.InvokeVoidAsync("remember", _root);
+        }
+        catch (Exception exception) when (exception is JSException or JSDisconnectedException or InvalidOperationException or TaskCanceledException)
+        {
+            // Panels still open and close without it. They just start open next time.
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_module == null)
+            return;
+
+        try
+        {
+            await _module.DisposeAsync();
+        }
+        catch (JSDisconnectedException)
+        {
+        }
+    }
+}

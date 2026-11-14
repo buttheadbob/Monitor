@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <AssemblyName>SenX.Monitor.Contracts</AssemblyName>
+    <RootNamespace>SenX.Monitor.Contracts</RootNamespace>
+    <ImplicitUsings>disable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\SenX.Monitor.Api\SenX.Monitor.Api.csproj" />
+  </ItemGroup>
+
+</Project>

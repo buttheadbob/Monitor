@@ -1,0 +1,291 @@
+@page "/monitor"
+@attribute [Authorize(Policy = MonitorPolicies.View)]
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using SenX.Monitor.Components
+@implements IDisposable
+@inject IMonitorServers Servers
+@inject MonitorCollector Collector
+@inject MonitorIncidents Incidents
+@inject MonitorSettings Settings
+@inject HistoryStore Store
+@inject IAuthorizationService Authorization
+@inject AuthenticationStateProvider Authentication
+
+<PageTitle>Monitor</PageTitle>
+<div class="monitor-surface">
+    <header class="monitor-row">
+        <h1>Monitor</h1>
+        <div class="monitor-row">
+            <label>
+                Server
+                <select @bind="_serverId">
+                    @if (_servers.Count > 0)
+                    {
+                        <option value="@AllServers">All servers</option>
+                    }
+                    @foreach (MonitorServer server in _servers.Where(server => server.Cluster.Length == 0))
+                    {
+                        <option value="@server.HistoryId">@server.Name</option>
+                    }
+                    @foreach (IGrouping<string, MonitorServer> cluster in _servers.Where(server => server.Cluster.Length > 0).GroupBy(server => server.Cluster))
+                    {
+                        <optgroup label="@cluster.Key">
+                            @foreach (MonitorServer server in cluster)
+                            {
+                                <option value="@server.HistoryId">@server.Name</option>
+                            }
+                        </optgroup>
+                    }
+                </select>
+            </label>
+            <label>
+                Range
+                <select @bind="RangeMinutes">
+                    @foreach ((string name, int minutes) in s_ranges.Where(range => range.Minutes <= Settings.RetentionDays * 1440))
+                    {
+                        <option value="@minutes">@name</option>
+                    }
+                </select>
+            </label>
+            <label title="Turn off to hold the charts still while you study them."><input type="checkbox" @bind="_live" /> Live</label>
+            @if (_servers.Count > 0)
+            {
+                <a class="monitor-link" href="@BoardLink(ShowingAll ? string.Empty : _serverId)" target="@("monitor-" + _serverId)" onclick="@PopOut" title="Every chart for this server, with heatmaps and treemaps, in a window of its own.">Full charts</a>
+            }
+            @if (_servers.Count > 1)
+            {
+                <a class="monitor-link" href="@BoardLink(string.Empty)" target="monitor-all" onclick="@PopOut" title="Every server together, in a window of its own.">All servers</a>
+            }
+            @if (_canChangeSettings)
+            {
+                <label title="History older than this is deleted.">
+                    Keep history for
+                    <select value="@Settings.RetentionDays" @onchange="RetentionChangedAsync">
+                        @for (int days = 1; days <= MonitorSettings.MaxRetentionDays; days++)
+                        {
+                            <option value="@days">@days @(days == 1 ? "day" : "days")</option>
+                        }
+                    </select>
+                </label>
+            }
+        </div>
+    </header>
+
+    @if (!ShowingAll)
+    {
+        <nav class="monitor-tabs" aria-label="Monitor views">
+            @foreach (string tab in s_tabs)
+            {
+                <button type="button" aria-current="@(_tab == tab ? "page" : null)" @onclick="() => _tab = tab">@tab</button>
+            }
+        </nav>
+    }
+
+    @if (_servers.Count == 0)
+    {
+        <p class="monitor-notice">No servers are connected.</p>
+    }
+    else if (ShowingAll)
+    {
+        <AllServersView RangeMinutes="@_rangeMinutes" Live="@_live" Tick="@_tick" OnPick="PickServer" />
+    }
+    else if (Selected is { } selected)
+    {
+        @if (_tab != ServersTabName && Collector.Problem(_serverId) is { } problem)
+        {
+            <p class="monitor-notice">This server isn't answering: @problem Monitor needs its worker running on the server.</p>
+        }
+
+        @if (_tab != IncidentsTabName && Incidents.OpenSince(_serverId) is { } since)
+        {
+            <p class="monitor-notice">Monitor noticed lag at @since.ToLocalTime().ToString("T") and it hasn't recovered yet. The Incidents tab has what's known so far.</p>
+        }
+
+        @switch (_tab)
+        {
+            case "Overview":
+                <OverviewTab ServerId="@_serverId" RangeMinutes="@_rangeMinutes" Live="@_live" Tick="@_tick" />
+                break;
+            case TreeTabName:
+                <TreeTab ServerId="@_serverId" RangeMinutes="@_rangeMinutes" Tick="@_tick" />
+                break;
+            case "Costs":
+                <CostsTab ServerId="@_serverId" RangeMinutes="@_rangeMinutes" Live="@_live" Tick="@_tick" />
+                break;
+            case ModsTabName:
+                <ModsTab ServerId="@_serverId" RangeMinutes="@_rangeMinutes" Live="@_live" Tick="@_tick" OnLookInside="LookInside" />
+                break;
+            case NetworkTabName:
+                <NetworkTab ServerId="@_serverId" RangeMinutes="@_rangeMinutes" Live="@_live" Tick="@_tick" OnLookInside="LookInside" />
+                break;
+            case "World":
+                <WorldTab ServerId="@_serverId" RangeMinutes="@_rangeMinutes" Live="@_live" Tick="@_tick" />
+                break;
+            case IncidentsTabName:
+                <IncidentsTab ServerId="@_serverId" Tick="@_tick" />
+                break;
+            case CompareTabName:
+                <CompareTab ServerId="@_serverId" />
+                break;
+            case PatchesTabName:
+                <PatchesTab Server="@selected" />
+                break;
+            case InsideTabName:
+                <InsideTab Server="@selected" StartWith="@_drillSearch" />
+                break;
+            case ServersTabName:
+                <ServersTab RangeMinutes="@_rangeMinutes" Live="@_live" Tick="@_tick" />
+                break;
+            default:
+                <RunsTab Server="@selected" />
+                break;
+        }
+    }
+</div>
+
+@code {
+    private const int TilesRefreshSeconds = 2;
+
+    // Not a history id, which is never empty and never starts with this.
+    private const string AllServers = "*all";
+    private const string ServersTabName = "Servers";
+
+    // In the link itself, because a browser only allows a new window straight from the click.
+    private const string PopOut = "window.open(this.href, this.target, 'popup,width=1680,height=1000'); return false;";
+    private const string IncidentsTabName = "Incidents";
+    private const string CompareTabName = "Compare";
+    private const string PatchesTabName = "Patches";
+    private const string TreeTabName = "Tree";
+    private const string InsideTabName = "Inside";
+    private const string ModsTabName = "Mods";
+    private const string NetworkTabName = "Network";
+
+    private static readonly string[] s_tabs = ["Overview", TreeTabName, "Costs", ModsTabName, NetworkTabName, "World", IncidentsTabName, CompareTabName, PatchesTabName, InsideTabName, ServersTabName, "Runs"];
+
+    private static readonly (string Name, int Minutes)[] s_ranges =
+    [
+        ("5 minutes", 5),
+        ("1 hour", 60),
+        ("6 hours", 360),
+        ("24 hours", 1440),
+        ("3 days", 4320),
+        ("7 days", 10080),
+    ];
+
+    private readonly CancellationTokenSource _closing = new();
+    private IReadOnlyList<MonitorServer> _servers = [];
+    private string _serverId = string.Empty;
+    private string _tab = s_tabs[0];
+    private int _rangeMinutes = 5;
+    private bool _live = true;
+    private int _tick;
+    private string? _drillSearch;
+    private bool _canChangeSettings;
+
+    private MonitorServer? Selected => _servers.FirstOrDefault(server => server.HistoryId == _serverId);
+
+    private bool ShowingAll => _serverId == AllServers;
+
+    private void PickServer(string historyId)
+    {
+        _serverId = historyId;
+        _tab = s_tabs[0];
+        Refresh();
+    }
+
+    private string BoardLink(string server) =>
+        FormattableString.Invariant($"{BoardPage.PageRoute}?server={Uri.EscapeDataString(server)}&minutes={_rangeMinutes}");
+
+    private int RangeMinutes
+    {
+        get => _rangeMinutes;
+        set => _rangeMinutes = value;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        Refresh();
+        _ = TickAsync();
+        _canChangeSettings = await MayChangeSettingsAsync();
+    }
+
+    private async Task<bool> MayChangeSettingsAsync()
+    {
+        AuthenticationState state = await Authentication.GetAuthenticationStateAsync();
+        return (await Authorization.AuthorizeAsync(state.User, MonitorPolicies.Settings)).Succeeded;
+    }
+
+    private async Task RetentionChangedAsync(ChangeEventArgs change)
+    {
+        // A hidden control isn't access control, and shortening this deletes history.
+        if (!await MayChangeSettingsAsync() || !int.TryParse(change.Value?.ToString(), out int days))
+            return;
+
+        Settings.RetentionDays = days;
+        Store.PruneSoon();
+
+        // The largest range that's still offered, because the page can't show one that isn't.
+        int limit = Settings.RetentionDays * 1440;
+        _rangeMinutes = s_ranges.Where(range => range.Minutes <= limit && range.Minutes <= _rangeMinutes).Max(range => range.Minutes);
+    }
+
+    private void LookInside(string part)
+    {
+        _drillSearch = part;
+        _tab = InsideTabName;
+    }
+
+    private void Refresh()
+    {
+        _servers = Servers.Connected();
+
+        if (ShowingAll && _servers.Count > 0)
+            return;
+
+        if (_serverId.Length == 0 || _servers.All(server => server.HistoryId != _serverId))
+            _serverId = _servers.Count > 0 ? _servers[0].HistoryId : string.Empty;
+
+        if (_serverId.Length > 0)
+            Collector.Watch(_serverId);
+    }
+
+    private async Task TickAsync()
+    {
+        try
+        {
+            using var timer = new PeriodicTimer(TimeSpan.FromSeconds(1));
+            int tick = 0;
+
+            while (await timer.WaitForNextTickAsync(_closing.Token))
+            {
+                tick++;
+
+                // Runs have their own rhythm, and redrawing under an admin typing in a box helps nobody.
+                if (!ShowingAll && (_tab == "Runs" || _tab == CompareTabName || _tab == PatchesTabName || _tab == InsideTabName))
+                    continue;
+
+                // Charts refresh themselves in the browser. This is only the tiles, tables and donuts.
+                if (!_live || tick % TilesRefreshSeconds != 0)
+                    continue;
+
+                await InvokeAsync(() =>
+                {
+                    _tick = tick;
+                    Refresh();
+                    StateHasChanged();
+                });
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // The page closed.
+        }
+    }
+
+    public void Dispose()
+    {
+        _closing.Cancel();
+        _closing.Dispose();
+    }
+}

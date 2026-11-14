@@ -1,0 +1,50 @@
+@using System.Globalization
+
+<figure class="monitor-chart monitor-donut">
+    <figcaption>@Title</figcaption>
+    <div>
+        <svg viewBox="0 0 42 42" role="img" aria-label="@Title">
+            @{
+                double offset = 25d;
+            }
+            @foreach (ChartSlice slice in _slices)
+            {
+                double share = slice.Value / _total * 100d;
+                <circle class="monitor-slice @slice.Color" cx="21" cy="21" r="15.915" stroke-dasharray="@Num(share) @Num(100d - share)" stroke-dashoffset="@Num(offset)" />
+                offset -= share;
+            }
+        </svg>
+        <ul class="monitor-legend">
+            @foreach (ChartSlice slice in _slices)
+            {
+                <li><i class="@slice.Color"></i>@slice.Name <b>@slice.Value.ToString("0.00", CultureInfo.InvariantCulture)@Unit</b></li>
+            }
+        </ul>
+    </div>
+    @if (_slices.Count == 0)
+    {
+        <p class="monitor-empty">No data yet.</p>
+    }
+</figure>
+
+@code {
+    private List<ChartSlice> _slices = [];
+    private double _total = 1d;
+
+    [Parameter, EditorRequired] public string Title { get; set; } = string.Empty;
+
+    [Parameter, EditorRequired] public IReadOnlyList<ChartSlice> Slices { get; set; } = [];
+
+    [Parameter] public string Unit { get; set; } = " ms";
+
+    /// <summary>Slices under this are hidden, so a donut shows what matters.</summary>
+    [Parameter] public double MinimumToShow { get; set; } = 0.1d;
+
+    protected override void OnParametersSet()
+    {
+        _slices = Slices.Where(slice => slice.Value >= MinimumToShow).OrderByDescending(slice => slice.Value).ToList();
+        _total = Math.Max(_slices.Sum(slice => slice.Value), double.Epsilon);
+    }
+
+    private static string Num(double value) => value.ToString("0.###", CultureInfo.InvariantCulture);
+}

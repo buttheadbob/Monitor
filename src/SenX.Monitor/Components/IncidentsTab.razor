@@ -1,0 +1,317 @@
+@using System.Globalization
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using SenX.Monitor.Components.Charts
+@using Microsoft.JSInterop
+@using SenX.Monitor.Contracts
+@inject IJSRuntime JS
+@inject MonitorIncidents Incidents
+@inject MonitorWebhooks Webhooks
+@inject MonitorSettings Settings
+@inject IAuthorizationService Authorization
+@inject AuthenticationStateProvider Authentication
+
+<p class="monitor-hint">Monitor watches for lag by itself, measures it, and keeps the evidence here, so a problem overnight can still be looked at in the morning.</p>
+
+@if (_canChange)
+{
+    <details class="monitor-settings">
+        <summary>What counts as lag</summary>
+        <div class="monitor-row">
+            <label><input type="checkbox" @bind="_limits.Enabled" /> Watch for lag</label>
+            <label title="A second under this counts as slow.">Sim speed under <input type="number" step="0.05" min="0.1" max="1" @bind="_limits.SimBelow" /></label>
+            <label title="Zero turns this off. Catches frames slowing down before sim speed falls.">Or frame p95 over <input type="number" step="1" min="0" @bind="_limits.FrameP95AboveMs" /> ms</label>
+            <label>For <input type="number" min="1" max="600" @bind="_limits.Seconds" /> seconds</label>
+            <label title="Zero turns this off. Saves are left out, because they stop the game by design.">Or one frame over <input type="number" step="100" min="0" @bind="_limits.SpikeMs" /> ms</label>
+            <label title="A character spawning makes the game load voxel files, which can hold a frame for seconds. Such a frame is recorded as a join hitch, with no alert or run. Zero turns this off.">Not within <input type="number" min="0" max="120" @bind="_limits.JoinGraceSeconds" /> s of a spawn</label>
+            <label title="Timing every call adds cost during lag, so this is short. Zero gathers evidence without a run.">Run for <input type="number" min="0" max="60" @bind="_limits.RunSeconds" /> seconds</label>
+            <label>At most every <input type="number" min="60" max="86400" @bind="_limits.CooldownSeconds" /> seconds</label>
+            <label title="This changes how physics is scheduled, with nobody watching."><input type="checkbox" @bind="_limits.TimeClusters" /> Time physics clusters</label>
+            <label><input type="checkbox" @bind="_limits.TellAdmins" /> Tell admins in the game</label>
+            <button type="button" @onclick="SaveAsync">Save</button>
+        </div>
+    </details>
+
+    <details class="monitor-settings">
+        <summary>What players can run</summary>
+        <div class="monitor-row">
+            <label title="Reads the latest background total, so it costs the server nothing."><input type="checkbox" @bind="_limits.PlayerMine" /> !monitor mine</label>
+            <label title="A test times every call on the server for its length."><input type="checkbox" @bind="_limits.PlayerTest" /> !monitor test</label>
+            <label>For <input type="number" min="1" max="60" @bind="_limits.PlayerTestSeconds" /> seconds</label>
+            <label>At most every <input type="number" min="60" max="86400" @bind="_limits.PlayerTestCooldownSeconds" /> seconds per player</label>
+            <label title="Refused below this, so players can't add to lag.">Not under sim speed <input type="number" step="0.05" min="0" max="1" @bind="_limits.PlayerTestLowestSim" /></label>
+            <button type="button" @onclick="SaveAsync">Save</button>
+        </div>
+    </details>
+}
+
+@if (_canManageDiscord)
+{
+    <details class="monitor-settings">
+        <summary>Discord alerts</summary>
+        <p class="monitor-hint">
+            Posts to a Discord webhook when lag is noticed, when the evidence is in, and when it ends.
+            @(Settings.HasOwnWebhook(ServerId) ? "This server has its own webhook." : Settings.HasDefaultWebhook ? "This server uses the webhook for all servers." : "No webhook is set for this server.")
+        </p>
+        <div class="monitor-row">
+            <label>Webhook URL <input type="password" autocomplete="off" @bind="_webhook" /></label>
+            <label title="Servers with their own webhook keep it."><input type="checkbox" @bind="_webhookForAll" /> For all servers</label>
+            <button type="button" @onclick="SaveWebhookAsync">Save</button>
+            <button type="button" @onclick="RemoveWebhookAsync">Remove</button>
+            <button type="button" @onclick="TestWebhookAsync">Send a test</button>
+        </div>
+
+        @if (_webhookNote != null)
+        {
+            <p class="monitor-hint">@_webhookNote</p>
+        }
+    </details>
+}
+
+@if (_list.Count == 0)
+{
+    <p class="monitor-notice">No lag noticed in the history kept.</p>
+}
+else
+{
+    <table class="monitor-table">
+        <thead><tr><th>When</th><th>What</th><th>Lasted</th><th>Lowest sim</th><th>Worst frame</th><th></th></tr></thead>
+        <tbody>
+            @foreach (IncidentInfo incident in _list)
+            {
+                <tr aria-current="@(incident.Id == _shown?.Id ? "true" : null)">
+                    <td>@incident.Opened.ToLocalTime().ToString("g", CultureInfo.CurrentCulture)</td>
+                    <td>@incident.Reason</td>
+                    <td>@Lasted(incident)</td>
+                    <td>@Num(incident.LowestSim, "0.00")</td>
+                    <td>@Num(incident.WorstFrameMs, "0") ms</td>
+                    <td class="monitor-actions"><button type="button" @onclick="() => Show(incident.Id)">View</button></td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@if (_shown is { } shown)
+{
+    <div class="monitor-row">
+        <h2>@MonitorIncidents.ReasonOf(shown) at @shown.Opened.ToLocalTime().ToString("g", CultureInfo.CurrentCulture)</h2>
+        <button type="button" @onclick="() => CopyAsync(shown)">Copy as text</button>
+    </div>
+
+    @if (shown.Unusual.Count > 0)
+    {
+        <p class="monitor-hint">Unusual for this server when it began: @string.Join("; ", shown.Unusual).</p>
+    }
+
+    <ClientCharts View="overview" ServerId="@ServerId" RangeMinutes="0" Live="false" From="@_from" To="@_to" @key="@shown.Id">
+        <div class="monitor-charts">
+            <ChartBox Id="cause" Title="What was using the frame" Wide="true" />
+        </div>
+    </ClientCharts>
+
+    @foreach (IncidentEvidence evidence in shown.Evidence)
+    {
+        @if (evidence.Report is { } report)
+        {
+            <h2>Noticed at @evidence.Time.ToLocalTime().ToString("T", CultureInfo.CurrentCulture)</h2>
+
+            @if (report.NoRun != null)
+            {
+                <p class="monitor-hint">No run for this one, because @report.NoRun.</p>
+            }
+
+            <div class="monitor-columns">
+                @if (report.Frames.Count > 0)
+                {
+                    <section>
+                        <h2>Worst frames just before</h2>
+                        <table class="monitor-table">
+                            <thead><tr><th>Took most</th><th>GC</th><th>ms</th></tr></thead>
+                            <tbody>
+                                @foreach (IncidentFrame frame in report.Frames)
+                                {
+                                    <tr><td>@BiggestPart(frame)</td><td>@Collection(frame)</td><td>@Num(frame.Ms, "0.0")</td></tr>
+                                }
+                            </tbody>
+                        </table>
+                    </section>
+                }
+
+                @if (report.Run == null && report.SlowCalls.Count > 0)
+                {
+                    <section>
+                        <h2>Slowest single calls</h2>
+                        <SlowCallsTable Calls="@report.SlowCalls" />
+                    </section>
+                }
+            </div>
+
+            @if (report.Run is { } run)
+            {
+                <RunReport Result="@run" />
+            }
+        }
+        else if (evidence.Lost != null)
+        {
+            <p class="monitor-notice">@evidence.Lost</p>
+        }
+        else
+        {
+            <p class="monitor-hint">Still gathering the evidence.</p>
+        }
+    }
+}
+
+@code {
+    private static readonly TimeSpan s_around = TimeSpan.FromMinutes(5);
+
+    private List<IncidentInfo> _list = [];
+    private StoredIncident? _shown;
+    private DateTime _from;
+    private DateTime _to;
+    private string? _loadedServer;
+    private TriggerSettings _limits = new();
+    private bool _canChange;
+    private bool _canManageDiscord;
+    private bool _webhookForAll;
+    private string _webhook = string.Empty;
+    private string? _webhookNote;
+
+    [Parameter, EditorRequired] public string ServerId { get; set; } = string.Empty;
+
+    /// <summary>Changes on each page refresh. Blazor doesn't update a tab whose parameters all stayed the same.</summary>
+    [Parameter] public int Tick { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        _limits = Settings.Triggers;
+        _canChange = await MayChangeAsync();
+        _canManageDiscord = await MayManageDiscordAsync();
+    }
+
+    protected override void OnParametersSet()
+    {
+        if (ServerId != _loadedServer)
+        {
+            _loadedServer = ServerId;
+            _shown = null;
+        }
+
+        _list = Incidents.List(ServerId);
+
+        // Evidence can arrive while it's on show.
+        if (_shown != null && _shown.Evidence.Any(evidence => evidence.Report == null && evidence.Lost == null))
+            _shown = Incidents.Load(ServerId, _shown.Id);
+    }
+
+    // Worked out once, because a chart whose window kept moving would be rebuilt on every refresh.
+    private async Task CopyAsync(StoredIncident incident)
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("navigator.clipboard.writeText", ReportText.ForIncident(incident));
+        }
+        catch (JSException)
+        {
+            // Browsers refuse this outside https and localhost. Nothing is lost, the text is still on the page.
+        }
+    }
+
+    private void Show(string id)
+    {
+        _shown = Incidents.Load(ServerId, id);
+
+        if (_shown != null)
+        {
+            _from = _shown.Opened - s_around;
+            _to = (_shown.Closed ?? DateTime.UtcNow) + s_around;
+        }
+    }
+
+    private async Task<bool> MayChangeAsync()
+    {
+        AuthenticationState state = await Authentication.GetAuthenticationStateAsync();
+        return (await Authorization.AuthorizeAsync(state.User, MonitorPolicies.Settings)).Succeeded;
+    }
+
+    private async Task<bool> MayManageDiscordAsync()
+    {
+        AuthenticationState state = await Authentication.GetAuthenticationStateAsync();
+        return (await Authorization.AuthorizeAsync(state.User, MonitorPolicies.Discord)).Succeeded;
+    }
+
+    private async Task SaveWebhookAsync()
+    {
+        // A hidden control isn't access control.
+        if (!await MayManageDiscordAsync())
+            return;
+
+        bool saved = Settings.SetWebhook(_webhookForAll ? null : ServerId, _webhook);
+
+        _webhookNote = saved ? "Saved." : "That isn't a Discord webhook URL.";
+
+        if (saved)
+            _webhook = string.Empty;
+    }
+
+    private async Task RemoveWebhookAsync()
+    {
+        if (!await MayManageDiscordAsync())
+            return;
+
+        Settings.SetWebhook(_webhookForAll ? null : ServerId, null);
+        _webhookNote = "Removed.";
+    }
+
+    private async Task TestWebhookAsync()
+    {
+        if (!await MayManageDiscordAsync())
+            return;
+
+        _webhookNote = await Webhooks.SendTestAsync(ServerId, CancellationToken.None)
+            ? "Sent. Check the channel."
+            : "That didn't work. Check the webhook is saved and still exists in Discord.";
+    }
+
+    private async Task SaveAsync()
+    {
+        // A hidden control isn't access control.
+        if (!await MayChangeAsync())
+            return;
+
+        Settings.Triggers = _limits;
+        _limits = Settings.Triggers;
+    }
+
+    private static string Lasted(IncidentInfo incident)
+    {
+        if (incident.Length is not { } length)
+            return "Still going";
+
+        string time = length.TotalMinutes >= 1d
+            ? length.TotalMinutes.ToString("0", CultureInfo.InvariantCulture) + " min"
+            : length.TotalSeconds.ToString("0", CultureInfo.InvariantCulture) + " s";
+
+        return incident.ClosedBy == "Recovered" ? time : time + ", " + incident.ClosedBy.ToLowerInvariant();
+    }
+
+    private static string BiggestPart(IncidentFrame frame)
+    {
+        double[] parts = FrameParts.Split(new HistoryPoint { Scopes = frame.ScopeUnits.Select(units => units / 10000f).ToArray() });
+        int biggest = 0;
+
+        // Idle is last, and it's not something a frame spent time on.
+        for (int part = 1; part < parts.Length - 1; part++)
+        {
+            if (parts[part] > parts[biggest])
+                biggest = part;
+        }
+
+        return FrameParts.All[biggest].Name + " " + Num(parts[biggest], "0.0") + " ms";
+    }
+
+    private static string Collection(IncidentFrame frame) => frame.Collection < 0 ? "-" : "Gen " + frame.Collection.ToString(CultureInfo.InvariantCulture);
+
+    private static string Num(double value, string format) => value.ToString(format, CultureInfo.InvariantCulture);
+}

@@ -1,0 +1,102 @@
+@using System.Globalization
+@using SenX.Monitor.Components.Charts
+@using SenX.Monitor.Contracts
+@inject HistoryStore Store
+
+<div class="monitor-row">
+    <label>
+        List
+        <select @bind="List">
+            @foreach ((string name, HistoryDimension list) in s_lists)
+            {
+                <option value="@list">@name</option>
+            }
+        </select>
+    </label>
+    <span class="monitor-hint">Background numbers. For a lag cause, use a run: it times every call.</span>
+</div>
+
+<ClientCharts View="costs" ServerId="@ServerId" RangeMinutes="@RangeMinutes" Live="@Live" List="@_list">
+    @if (_rows.Count == 0)
+    {
+        <p class="monitor-notice">No totals yet. They arrive every 30 seconds while detail is on.</p>
+    }
+
+    <div class="monitor-charts">
+        <Donut Title="@(ListName + " now")" Slices="@_slices" />
+        <ChartBox Id="costs" Title="@ListName" />
+    </div>
+
+    @if (_rows.Count > 0)
+    {
+        <table class="monitor-table">
+            <thead><tr><th>Name</th><th>Main ms/f</th><th>Workers ms/f</th><th>Peak ms</th><th>Calls/f</th><th>Thread</th></tr></thead>
+            <tbody>
+                @foreach (StoredGroup row in _rows)
+                {
+                    <tr>
+                        <td title="@row.Name">@row.Name</td>
+                        <td>@Num(row.MainMs)</td>
+                        <td>@Num(row.WorkerMs)</td>
+                        <td>@Num(row.PeakMs)</td>
+                        <td>@row.CallsPerFrame.ToString("0.#", CultureInfo.InvariantCulture)</td>
+                        <ThreadCell Main="row.MainMs" Worker="row.WorkerMs" />
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</ClientCharts>
+
+@code {
+    private static readonly (string Name, HistoryDimension List)[] s_lists =
+    [
+        ("Grids", HistoryDimension.Grids),
+        ("Block types", HistoryDimension.BlockTypes),
+        ("Block definitions", HistoryDimension.Definitions),
+        ("Players", HistoryDimension.Owners),
+        ("Factions", HistoryDimension.Factions),
+        ("Entity types", HistoryDimension.EntityTypes),
+        ("Session components", HistoryDimension.Session),
+        ("Game logic", HistoryDimension.Logic),
+        ("Callbacks", HistoryDimension.Callbacks),
+        ("RPCs", HistoryDimension.Rpcs),
+        ("Scripts", HistoryDimension.Scripts),
+        ("Mods and plugins", HistoryDimension.Mods),
+    ];
+
+    private HistoryDimension _list = HistoryDimension.Grids;
+    private List<StoredGroup> _rows = [];
+    private List<ChartSlice> _slices = [];
+
+    [Parameter, EditorRequired] public string ServerId { get; set; } = string.Empty;
+
+    [Parameter, EditorRequired] public int RangeMinutes { get; set; }
+
+    [Parameter] public bool Live { get; set; } = true;
+
+    /// <summary>Changes on each page refresh. Blazor doesn't update a tab whose parameters all stayed the same.</summary>
+    [Parameter] public int Tick { get; set; }
+
+    private string ListName => s_lists.First(entry => entry.List == _list).Name;
+
+    private HistoryDimension List
+    {
+        get => _list;
+        set
+        {
+            _list = value;
+            Load();
+        }
+    }
+
+    protected override void OnParametersSet() => Load();
+
+    private void Load()
+    {
+        _rows = Store.LatestGroups(ServerId, _list);
+        _slices = _rows.Select(row => new ChartSlice(row.Name, ChartColors.For(row.Name), row.MainMs + row.WorkerMs)).ToList();
+    }
+
+    private static string Num(float value) => value.ToString("0.00", CultureInfo.InvariantCulture);
+}

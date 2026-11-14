@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <AssemblyName>SenX.Monitor.Core</AssemblyName>
+    <RootNamespace>SenX.Monitor.Core</RootNamespace>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <ImplicitUsings>disable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="SenX.Monitor.Core.Tests" />
+    <InternalsVisibleTo Include="SenX.Monitor.Verify" />
+    <InternalsVisibleTo Include="SenX.Monitor.Magnetar.Tests" />
+    <InternalsVisibleTo Include="SenX.Monitor.Ui.Tests" />
+  </ItemGroup>
+
+  <!-- Core is all hot-path code, so the whole project is held to the banned list. -->
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.BannedApiAnalyzers" Version="5.6.0" PrivateAssets="all" />
+    <AdditionalFiles Include="..\..\BannedSymbols.Hot.txt" Link="BannedSymbols.txt" />
+  </ItemGroup>
+
+</Project>

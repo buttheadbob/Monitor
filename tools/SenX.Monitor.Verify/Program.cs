@@ -1,0 +1,179 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Reflection;
+using System.Text;
+using HarmonyLib;
+using SenX.Monitor.Core;
+using SenX.Monitor.Magnetar.Patching;
+
+namespace SenX.Monitor.Verify;
+
+/// <summary>
+/// Checks Monitor's patch table against game DLLs with no server running, so a game update can be
+/// assessed in seconds. Uses the same table, matching and rewriter as the plugin.
+///
+/// Usage: SenX.Monitor.Verify DS64 [--commands] [--physics] [--apply] [--write-lock file] [--write-il folder]
+///   --commands    sends the chat commands through the real SDK, and runs one measurement
+///   --physics     times clusters on real Havok, through the real game code and patches
+///   --apply       really patches every method, proving the rewritten IL compiles
+///   --write-lock  regenerates Fingerprints.Generated.cs from these DLLs
+///   --write-il    writes each caller's original IL, for diffing against a game update
+/// </summary>
+public static class Program
+{
+    private static string[] s_folders = Array.Empty<string>();
+
+    public static int Main(string[] args)
+    {
+        if (args.Length == 0)
+        {
+            Console.WriteLine("Usage: SenX.Monitor.Verify DS64 [--commands] [--physics] [--apply] [--write-lock file] [--write-il folder]");
+            return 2;
+        }
+
+        s_folders = new[] { args[0], AppDomain.CurrentDomain.BaseDirectory };
+        AppDomain.CurrentDomain.AssemblyResolve += Resolve;
+
+        return Run(args);
+    }
+
+    private static Assembly? Resolve(object sender, ResolveEventArgs request)
+    {
+        string name = new AssemblyName(request.Name).Name;
+        if (name.EndsWith(".resources", StringComparison.Ordinal))
+            return null;
+
+        foreach (string folder in s_folders)
+        {
+            string path = Path.Combine(folder, name + ".dll");
+            if (File.Exists(path))
+                return Assembly.LoadFrom(path);
+        }
+
+        return null;
+    }
+
+    private static int Run(string[] args)
+    {
+        MonitorCore.Initialize();
+
+        if (args.Contains("--commands"))
+            return CommandCheck.Run();
+
+        if (args.Contains("--physics"))
+            return PhysicsCheck.Run(args[0]);
+
+        List<CallerSpec> table = TargetTable.Build();
+        List<SiteResult> results = PatchEngine.Evaluate(table);
+
+        foreach (IGrouping<string, SiteResult> caller in results.GroupBy(result => result.Caller))
+        {
+            Console.WriteLine(caller.Key);
+            foreach (SiteResult result in caller)
+            {
+                Console.WriteLine($"  {result.State,-12} {result.Found}/{result.Target.Expected}  {result.Target.Name}  {result.Note}");
+            }
+        }
+
+        int ok = results.Count(result => result.State == SiteState.Ok);
+        int drifted = results.Count(result => result.State == SiteState.Drifted);
+        int unavailable = results.Count(result => result.State == SiteState.Unavailable);
+
+        Console.WriteLine();
+        Console.WriteLine($"Callers {table.Count}, sites {results.Count}: ok {ok}, drifted {drifted}, unavailable {unavailable}.");
+
+        string? lockFile = Option(args, "--write-lock");
+        if (lockFile != null)
+            WriteLock(table, lockFile);
+
+        string? ilFolder = Option(args, "--write-il");
+        if (ilFolder != null)
+            WriteIl(table, ilFolder);
+
+        if (args.Contains("--apply"))
+        {
+            PatchEngine.Apply();
+
+            int patched = PatchEngine.Results.Count(result => result.Patched > 0);
+            Console.WriteLine($"Applied in {PatchEngine.LoadMilliseconds:0} ms: {PatchEngine.PatchedMethods} methods patched, {patched} of {PatchEngine.Results.Count} sites rewritten.");
+
+            foreach (SiteResult result in PatchEngine.Results.Where(result => result.Patched == 0 || result.Patched != result.Target.Expected))
+                Console.WriteLine($"  Not as expected: {result.Target.Name} in {result.Caller}, rewrote {result.Patched} of {result.Target.Expected}");
+
+            bool followed = TakeoverCheck.Run();
+
+            PatchEngine.Remove();
+            Console.WriteLine("Removed all patches.");
+
+            // After shutdown a plugin's own transpiler on one of these methods has taken nothing.
+            if (PatchEngine.Results.Any(result => result.State == SiteState.TakenOver))
+                followed = false;
+
+            if (patched != PatchEngine.Results.Count || !followed)
+                return 1;
+        }
+
+        return unavailable == 0 ? 0 : 1;
+    }
+
+    private static string? Option(string[] args, string name)
+    {
+        int index = Array.IndexOf(args, name);
+        return index >= 0 && index + 1 < args.Length ? args[index + 1] : null;
+    }
+
+    private static void WriteLock(IEnumerable<CallerSpec> table, string file)
+    {
+        var text = new StringBuilder();
+        text.AppendLine("// Generated by tools/SenX.Monitor.Verify. Do not edit by hand.");
+        text.AppendLine("using System;");
+        text.AppendLine("using System.Collections.Generic;");
+        text.AppendLine();
+        text.AppendLine("namespace SenX.Monitor.Magnetar.Patching;");
+        text.AppendLine();
+        text.AppendLine("internal static class Fingerprints");
+        text.AppendLine("{");
+        text.AppendLine("    public static readonly Dictionary<string, string> Known = new(StringComparer.Ordinal)");
+        text.AppendLine("    {");
+
+        foreach (CallerSpec caller in table.Where(caller => caller.Method != null).OrderBy(caller => caller.Id, StringComparer.Ordinal))
+            text.AppendLine($"        [\"{caller.Id}\"] = \"{IlFingerprint.Compute(caller.Method!)}\",");
+
+        text.AppendLine("    };");
+        text.AppendLine("}");
+
+        File.WriteAllText(file, text.ToString());
+        Console.WriteLine($"Wrote {file}");
+    }
+
+    private static void WriteIl(IEnumerable<CallerSpec> table, string folder)
+    {
+        Directory.CreateDirectory(folder);
+
+        foreach (CallerSpec caller in table.Where(caller => caller.Method != null))
+        {
+            string name = string.Concat(caller.Id.Select(c => char.IsLetterOrDigit(c) || c == '.' ? c : '_'));
+            var text = new StringBuilder();
+
+            foreach (CodeInstruction instruction in PatchProcessor.GetOriginalInstructions(caller.Method!))
+                text.AppendLine($"{instruction.opcode} {Operand(instruction.operand)}".TrimEnd());
+
+            File.WriteAllText(Path.Combine(folder, name + ".il"), text.ToString());
+        }
+
+        Console.WriteLine($"Wrote IL to {folder}");
+    }
+
+    private static string Operand(object? operand) => operand switch
+    {
+        null => string.Empty,
+        MethodBase method => IlFingerprint.Describe(method),
+        FieldInfo field => field.DeclaringType?.FullName + "::" + field.Name,
+        LocalVariableInfo local => "local " + local.LocalIndex,
+        System.Reflection.Emit.Label => "label",
+        System.Reflection.Emit.Label[] table => "labels " + table.Length,
+        _ => operand.ToString() ?? string.Empty,
+    };
+}

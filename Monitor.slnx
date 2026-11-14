@@ -1,0 +1,26 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/SenX.Monitor.Core/SenX.Monitor.Core.csproj" />
+    <Project Path="src/SenX.Monitor.Contracts/SenX.Monitor.Contracts.csproj" />
+    <Project Path="src/SenX.Monitor.Api/SenX.Monitor.Api.csproj" />
+    <Project Path="src/SenX.Monitor.Magnetar/SenX.Monitor.Magnetar.csproj" />
+    <Project Path="src/SenX.Monitor.QuasarCompanion/SenX.Monitor.QuasarCompanion.csproj" />
+    <Project Path="src/SenX.Monitor/SenX.Monitor.csproj" />
+    <Project Path="src/SenX.Monitor.Quasar/SenX.Monitor.Quasar.csproj" />
+  </Folder>
+  <Folder Name="/samples/">
+    <Project Path="samples/PreviewHost/PreviewHost.csproj" />
+    <Project Path="samples/ApiConsumer/ApiConsumer.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/SenX.Monitor.Core.Tests/SenX.Monitor.Core.Tests.csproj" />
+    <Project Path="tests/SenX.Monitor.Magnetar.Tests/SenX.Monitor.Magnetar.Tests.csproj" />
+    <Project Path="tests/SenX.Monitor.Ui.Tests/SenX.Monitor.Ui.Tests.csproj" />
+  </Folder>
+  <Folder Name="/tools/">
+    <Project Path="tools/SenX.Monitor.Verify/SenX.Monitor.Verify.csproj" />
+  </Folder>
+  <Folder Name="/bench/">
+    <Project Path="bench/SenX.Monitor.Benchmarks/SenX.Monitor.Benchmarks.csproj" />
+  </Folder>
+</Solution>

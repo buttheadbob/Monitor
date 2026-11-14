@@ -1,0 +1,109 @@
+@using System.Globalization
+@using SenX.Monitor.Contracts
+@inject HistoryStore Store
+
+<p class="monitor-hint">Where the frame went over this range. Total includes what's inside a part, and Self is what's left after those, so a large Self means time the parts below don't explain. All of it is game thread time, and Thread says where some of that is the game thread waiting for others.</p>
+
+@if (_rows.Count == 0)
+{
+    <p class="monitor-notice">Nothing collected for this range yet.</p>
+}
+else
+{
+    <table class="monitor-table monitor-tree">
+        <thead><tr><th>Part</th><th>Total ms/f</th><th>Self ms/f</th><th>Share of frame</th><th>Thread</th></tr></thead>
+        <tbody>
+            @foreach (TreeRow row in _rows)
+            {
+                <tr>
+                    <td style="padding-left: @(row.Depth * 16)px">
+                        @if (row.HasChildren)
+                        {
+                            <button type="button" class="monitor-tree-toggle" aria-expanded="@(!_closed.Contains(row.Id))" @onclick="() => Toggle(row.Id)">@(_closed.Contains(row.Id) ? "+" : "-")</button>
+                        }
+
+                        @row.Name
+                    </td>
+                    <td>@row.TotalMs.ToString("0.00", CultureInfo.InvariantCulture)</td>
+                    <td>@row.SelfMs.ToString("0.00", CultureInfo.InvariantCulture)</td>
+                    <td>@row.Share.ToString("0.0", CultureInfo.InvariantCulture)%</td>
+                    <td>@TreeShape.ThreadOf(row.Id)</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private const int MaxPoints = 1200;
+
+    // Too small to read, and hiding these keeps the tree to what matters.
+    private const double SmallestShownMs = 0.005d;
+
+    private readonly HashSet<int> _closed = [];
+    private List<TreeRow> _rows = [];
+    private double[] _totals = [];
+
+    private sealed record TreeRow(int Id, int Depth, string Name, double TotalMs, double SelfMs, double Share, bool HasChildren);
+
+    [Parameter, EditorRequired] public string ServerId { get; set; } = string.Empty;
+
+    [Parameter, EditorRequired] public int RangeMinutes { get; set; }
+
+    /// <summary>Changes on each page refresh. Blazor doesn't update a tab whose parameters all stayed the same.</summary>
+    [Parameter] public int Tick { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        List<HistoryPoint> points = Store.Points(ServerId, DateTime.UtcNow.AddMinutes(-RangeMinutes), DateTime.UtcNow, MaxPoints);
+
+        _totals = new double[TreeShape.All.Length + 1];
+
+        foreach (HistoryPoint point in points)
+        {
+            for (int id = 1; id < _totals.Length && id < point.Scopes.Length; id++)
+                _totals[id] += point.Scopes[id] / (double)points.Count;
+        }
+
+        Rebuild();
+    }
+
+    private void Toggle(int id)
+    {
+        if (!_closed.Remove(id))
+            _closed.Add(id);
+
+        Rebuild();
+    }
+
+    private void Rebuild()
+    {
+        _rows = [];
+
+        if (_totals.Length > TreeShape.Frame && _totals[TreeShape.Frame] > 0d)
+        {
+            foreach (TreeNode top in TreeShape.ChildrenOf(0))
+                Add(top, 0);
+        }
+    }
+
+    private void Add(TreeNode node, int depth)
+    {
+        double total = _totals[node.Id];
+
+        if (total < SmallestShownMs)
+            return;
+
+        List<TreeNode> children = TreeShape.ChildrenOf(node.Id).ToList();
+        double self = Math.Max(0d, total - children.Sum(child => _totals[child.Id]));
+        double share = total / _totals[TreeShape.Frame] * 100d;
+
+        _rows.Add(new TreeRow(node.Id, depth, node.Name, total, self, share, children.Count > 0));
+
+        if (_closed.Contains(node.Id))
+            return;
+
+        foreach (TreeNode child in children.OrderByDescending(child => _totals[child.Id]))
+            Add(child, depth + 1);
+    }
+}

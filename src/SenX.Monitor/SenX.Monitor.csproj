@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>SenX.Monitor</AssemblyName>
+    <RootNamespace>SenX.Monitor</RootNamespace>
+    <PackageId>SenX.Monitor</PackageId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="SenX.Monitor.Ui.Tests" />
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <ProjectReference Include="..\SenX.Monitor.Contracts\SenX.Monitor.Contracts.csproj" />
+    <ProjectReference Include="..\SenX.Monitor.Api\SenX.Monitor.Api.csproj" />
+  </ItemGroup>
+
+</Project>

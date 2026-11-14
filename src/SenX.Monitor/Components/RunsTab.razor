@@ -1,0 +1,226 @@
+@using System.Globalization
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using SenX.Monitor.Contracts
+@implements IDisposable
+@inject MonitorRuns Runs
+@inject IAuthorizationService Authorization
+@inject AuthenticationStateProvider Authentication
+
+<p class="monitor-hint">A run times every call for its length, then puts detail back as it was. This is the accurate way to find a lag cause. Results stay here for as long as history is kept.</p>
+
+@if (_canRun)
+{
+    <div class="monitor-row">
+        <label>Seconds <input type="number" min="1" max="600" @bind="_seconds" /></label>
+        <label><input type="checkbox" @bind="_clusters" /> Time physics clusters</label>
+        <label title="Leave these empty to measure everything. A name, an identity id, or sid/STEAMID.">Player <input type="text" @bind="_player" /></label>
+        <label title="A tag, a name or a faction id.">Faction <input type="text" @bind="_faction" /></label>
+        <label title="Part of a block class name, such as Drill.">Block type <input type="text" @bind="_blockType" /></label>
+        <button type="button" disabled="@Running" @onclick="StartAsync">@(Running ? "Measuring..." : "Start run")</button>
+    </div>
+}
+else
+{
+    <p class="monitor-notice">Starting a run needs permission to control servers.</p>
+}
+
+@if (_message != null)
+{
+    <p class="monitor-notice">@_message</p>
+}
+
+@if (Runs.Problem(ServerId) is { } problem)
+{
+    <p class="monitor-notice">@problem</p>
+}
+
+@if (_saved.Count > 0)
+{
+    <table class="monitor-table">
+        <thead><tr><th>Saved runs</th><th>Length</th><th>Sim speed</th><th>Frame average</th><th></th></tr></thead>
+        <tbody>
+            @foreach (SavedRunInfo run in _saved)
+            {
+                <tr aria-current="@(run.Id == _shownId ? "true" : null)">
+                    <td>@run.Time.ToLocalTime().ToString("g", CultureInfo.CurrentCulture)</td>
+                    <td>@Num(run.Seconds, "0") s</td>
+                    <td>@Num(run.SimSpeed, "0.00")</td>
+                    <td>@Num(run.AverageFrameMs, "0.0") ms</td>
+                    <td class="monitor-actions">
+                        <button type="button" @onclick="() => Show(run.Id)">View</button>
+                        <button type="button" disabled="@(run.Id == _shownId)" @onclick="() => CompareWith(run.Id)">Compare</button>
+                        @if (_canRun)
+                        {
+                            <button type="button" @onclick="() => DeleteAsync(run.Id)">Delete</button>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@if (_shown is { } result)
+{
+    @if (_baseline is { } baseline)
+    {
+        <h2>Comparing with the run from @_baselineTime</h2>
+
+        <div class="monitor-tiles">
+            <div class="monitor-stat"><span>Sim speed</span><b>@Num(baseline.SimSpeed, "0.00") to @Num(result.SimSpeed, "0.00")</b></div>
+            <div class="monitor-stat"><span>Frame average</span><b>@Num(baseline.AverageFrameMs, "0.0") to @Num(result.AverageFrameMs, "0.0") ms</b></div>
+            <div class="monitor-stat"><span>Frame worst</span><b>@Num(baseline.WorstFrameMs, "0.0") to @Num(result.WorstFrameMs, "0.0") ms</b></div>
+        </div>
+
+        <p class="monitor-hint">Lists hold each run's top rows, so a dash means a row wasn't in that run's top, not that it cost nothing.</p>
+
+        <PanelGrid Page="runs-compare" Items="@ComparePanels(baseline, result)" />
+    }
+    else
+    {
+        <RunReport Result="@result" />
+    }
+}
+
+@code {
+    private bool _canRun;
+    private int _seconds = 10;
+    private bool _clusters = true;
+    private string _player = string.Empty;
+    private string _faction = string.Empty;
+    private string _blockType = string.Empty;
+    private string? _message;
+    private List<SavedRunInfo> _saved = [];
+    private string? _shownId;
+    private RunResultResponse? _shown;
+    private RunResultResponse? _baseline;
+    private string? _baselineTime;
+    private string? _loadedServer;
+
+    [Parameter, EditorRequired] public MonitorServer Server { get; set; } = null!;
+
+    private string ServerId => Server.HistoryId;
+
+    private bool Running => Runs.Running(ServerId);
+
+    protected override async Task OnInitializedAsync()
+    {
+        Runs.Changed += OnRunsChanged;
+        _canRun = await MayRunAsync();
+    }
+
+    protected override void OnParametersSet()
+    {
+        // The same tab stays when the server picker changes, so one server's run mustn't stay on show.
+        if (ServerId != _loadedServer)
+        {
+            _loadedServer = ServerId;
+            _shownId = null;
+            _shown = null;
+            _baseline = null;
+            _message = null;
+        }
+
+        _saved = Runs.List(ServerId);
+
+        if (_shownId == null && _saved.Count > 0)
+            Show(_saved[0].Id);
+    }
+
+    // A run someone started shows itself when it finishes, wherever the admin was on this page. One from a lag trip just joins the list.
+    private void OnRunsChanged() => _ = InvokeAsync(() =>
+    {
+        _saved = Runs.List(ServerId);
+
+        if (!Running && _saved.Count > 0 && _saved[0].Id != _shownId && !_saved[0].ByLagTrip)
+            Show(_saved[0].Id);
+
+        StateHasChanged();
+    });
+
+    private async Task<bool> MayRunAsync()
+    {
+        AuthenticationState state = await Authentication.GetAuthenticationStateAsync();
+        return (await Authorization.AuthorizeAsync(state.User, MonitorPolicies.Control)).Succeeded;
+    }
+
+    private async Task StartAsync()
+    {
+        // A hidden button isn't access control, so the action checks for itself.
+        if (Running || !await MayRunAsync())
+            return;
+
+        _message = null;
+
+        try
+        {
+            var request = new RunStartRequest
+            {
+                Seconds = Math.Clamp(_seconds, 1, 600),
+                Clusters = _clusters,
+                Player = _player,
+                Faction = _faction,
+                BlockType = _blockType,
+            };
+
+            _message = await Runs.StartAsync(Server, request, CancellationToken.None);
+        }
+        catch (Exception exception) when (exception is InvalidOperationException or TimeoutException)
+        {
+            _message = "The server didn't answer: " + exception.Message;
+        }
+    }
+
+    private void Show(string id)
+    {
+        _shownId = id;
+        _shown = Runs.Load(ServerId, id);
+        _baseline = null;
+        _baselineTime = null;
+    }
+
+    private void CompareWith(string id)
+    {
+        _baseline = Runs.Load(ServerId, id);
+        _baselineTime = _saved.FirstOrDefault(run => run.Id == id)?.Time.ToLocalTime().ToString("g", CultureInfo.CurrentCulture);
+    }
+
+    private async Task DeleteAsync(string id)
+    {
+        if (!await MayRunAsync())
+            return;
+
+        Runs.Delete(ServerId, id);
+        _saved = Runs.List(ServerId);
+
+        if (id == _shownId)
+        {
+            _shownId = null;
+            _shown = null;
+            _baseline = null;
+        }
+    }
+
+    private static string Num(double value, string format) => value.ToString(format, CultureInfo.InvariantCulture);
+
+    public void Dispose() => Runs.Changed -= OnRunsChanged;
+
+    // The same lists as a run's own report, in the same two stacks, with mods above entity types.
+    private static List<PanelGrid.PanelItem> ComparePanels(RunResultResponse baseline, RunResultResponse result)
+    {
+        var panels = new List<PanelGrid.PanelItem>();
+
+        foreach ((string title, string list) in RunReport.Lists.Where(entry => entry.List != RunLists.Clusters))
+        {
+            List<ComparedRow> rows = RunComparison.Compare(baseline, result, list);
+            if (rows.Count == 0)
+                continue;
+
+            string? group = list is RunLists.Mods or RunLists.Entities ? "mods-entities" : null;
+            panels.Add(new PanelGrid.PanelItem(title, rows.Count, @<ComparedTable Rows="@rows" />, group));
+        }
+
+        return panels;
+    }
+}

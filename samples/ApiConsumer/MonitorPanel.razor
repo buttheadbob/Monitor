@@ -1,0 +1,74 @@
+@using System.Globalization
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components.Web
+@using Quasar.Plugin.Abstractions.Security
+@using SenX.Monitor.Api
+@inject IMonitorApi Monitor
+@inject IAuthorizationService Authorization
+@inject AuthenticationStateProvider Authentication
+
+<h1>Monitor API sample</h1>
+
+<ul>
+    @foreach (MonitorServerInfo server in Monitor.Servers())
+    {
+        <li>
+            @server.Name: sim @(Monitor.Latest(server.Id)?.Frame.SimSpeed.ToString("0.00", CultureInfo.InvariantCulture) ?? "not collected yet")
+            <button type="button" @onclick="() => HistoryAsync(server.Id)">Grids, last hour</button>
+            <button type="button" @onclick="() => RunAsync(server.Id)">Grids, measure now</button>
+        </li>
+    }
+</ul>
+
+@if (_reply is { } reply)
+{
+    <p>@reply.State, @reply.Accuracy, @reply.Message</p>
+
+    @foreach (MonitorListReply list in reply.Lists)
+    {
+        <h2>@list.List @(list.Available ? null : "(" + list.Why + ")")</h2>
+        <ul>
+            @foreach (MonitorRow row in list.Rows)
+            {
+                <li>@row.Name: @((row.MainMs + row.WorkerMs).ToString("0.00", CultureInfo.InvariantCulture)) ms/f</li>
+            }
+        </ul>
+    }
+}
+
+@code {
+    private MonitorReply? _reply;
+
+    // The same reply shape from both, so showing it doesn't care which this was.
+    private async Task HistoryAsync(string server) => _reply = await Monitor.RequestAsync(
+        new MonitorRequest
+        {
+            Server = server,
+            Source = MonitorSource.History,
+            Lists = [MonitorList.Grids],
+            From = DateTime.UtcNow.AddHours(-1),
+            To = DateTime.UtcNow,
+        },
+        CancellationToken.None);
+
+    private async Task RunAsync(string server)
+    {
+        // The API can't see who's asking, so checking is this plugin's job.
+        AuthenticationState state = await Authentication.GetAuthenticationStateAsync();
+        if (!(await Authorization.AuthorizeAsync(state.User, QuasarPolicyNames.CanControlServers)).Succeeded)
+            return;
+
+        _reply = await Monitor.RequestAsync(
+            new MonitorRequest
+            {
+                Server = server,
+                Source = MonitorSource.Run,
+                Lists = [MonitorList.Grids],
+                Seconds = 10,
+                RequestedBy = "Monitor API sample, for " + state.User.Identity?.Name,
+            },
+            CancellationToken.None);
+    }
+}

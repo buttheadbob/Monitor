@@ -1,0 +1,8 @@
+{
+  "id": "senx.monitor.sample",
+  "displayName": "Monitor API sample",
+  "version": "0.1.0",
+  "entryAssembly": "ApiConsumer.dll",
+  "entryType": "ApiConsumer.ApiConsumerPlugin",
+  "projectPath": "samples/ApiConsumer/ApiConsumer.csproj"
+}

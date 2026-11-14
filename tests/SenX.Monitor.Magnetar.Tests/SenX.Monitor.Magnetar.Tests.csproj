@@ -1,0 +1,35 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Needs Dedicated Server assemblies to build, unlike the Core tests. -->
+  <PropertyGroup>
+    <TargetFrameworks>net10.0;net48</TargetFrameworks>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <PlatformTarget>x64</PlatformTarget>
+    <Platforms>x64</Platforms>
+    <IsTestProject>true</IsTestProject>
+    <NoWarn>$(NoWarn);xUnit1031;CS0618</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.11.0" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="4.0.1" />
+    <PackageReference Include="Lib.Harmony" Version="2.4.2" />
+    <!-- The game's assemblies are .NET Framework ones, and on .NET 10 they ask for this. A server brings its own. -->
+    <PackageReference Include="System.Security.Permissions" Version="8.0.0" Condition="'$(TargetFramework)' == 'net10.0'" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\SenX.Monitor.Magnetar\SenX.Monitor.Magnetar.csproj" />
+    <ProjectReference Include="..\..\src\SenX.Monitor.Core\SenX.Monitor.Core.csproj" />
+    <Reference Include="Newtonsoft.Json" HintPath="$(DS64)\Newtonsoft.Json.dll" />
+    <Reference Include="VRage" HintPath="$(DS64)\VRage.dll" />
+    <!-- The drill-down reads whose code a type is from the game's mod list, so these have to load. Nothing here starts the game. -->
+    <Reference Include="Sandbox.Game" HintPath="$(DS64)\Sandbox.Game.dll" />
+    <Reference Include="VRage.Game" HintPath="$(DS64)\VRage.Game.dll" />
+    <Reference Include="VRage.Library" HintPath="$(DS64)\VRage.Library.dll" />
+    <Reference Include="PluginSdk" HintPath="$(MagnetarBin)/PluginSdk.dll" />
+  </ItemGroup>
+
+</Project>

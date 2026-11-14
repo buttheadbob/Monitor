@@ -1,0 +1,14 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/SenX.Monitor.Core/SenX.Monitor.Core.csproj" />
+    <Project Path="src/SenX.Monitor.Contracts/SenX.Monitor.Contracts.csproj" />
+    <Project Path="src/SenX.Monitor.Api/SenX.Monitor.Api.csproj" />
+    <Project Path="src/SenX.Monitor.Torch/SenX.Monitor.Torch.csproj" />
+  </Folder>
+  <Folder Name="/tools/">
+    <Project Path="tools/SenX.Monitor.Torch.Lock/SenX.Monitor.Torch.Lock.csproj" />
+  </Folder>
+  <Folder Name="/samples/">
+    <Project Path="samples/TorchPreview/TorchPreview.csproj" />
+  </Folder>
+</Solution>

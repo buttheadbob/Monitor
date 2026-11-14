@@ -1,0 +1,125 @@
+@using System.Globalization
+@using SenX.Monitor.Components.Charts
+@using SenX.Monitor.Contracts
+@inject HistoryStore Store
+
+<ClientCharts View="mods" ServerId="@ServerId" RangeMinutes="@RangeMinutes" Live="@Live">
+    <p class="monitor-hint">Time by whose code it is, from background totals, so use this for trends and a run to settle a cause. Open a row to see where that mod or plugin spends its time.</p>
+
+    @if (_mods.Count == 0)
+    {
+        <p class="monitor-notice">No mod or plugin code in the latest total. Totals arrive every 30 seconds while detail is on.</p>
+    }
+
+    <div class="monitor-charts">
+        <ChartBox Id="mods" Title="Mods and plugins, costliest 6" Wide="true" />
+    </div>
+
+    @if (_mods.Count > 0)
+    {
+        <table class="monitor-table">
+            <thead><tr><th>Mod or plugin</th><th>Main ms/f</th><th>Workers ms/f</th><th>Peak ms</th><th>Calls/f</th><th>Thread</th></tr></thead>
+            <tbody>
+                @foreach (StoredGroup mod in _mods)
+                {
+                    <tr aria-current="@(mod.Name == _open ? "true" : null)">
+                        <td title="@mod.Name">
+                            <button type="button" class="monitor-tree-toggle" aria-expanded="@(mod.Name == _open)" @onclick="() => Toggle(mod.Name)">@(mod.Name == _open ? "-" : "+")</button>
+                            @mod.Name
+                        </td>
+                        <td>@Num(mod.MainMs)</td>
+                        <td>@Num(mod.WorkerMs)</td>
+                        <td>@Num(mod.PeakMs)</td>
+                        <td>@mod.CallsPerFrame.ToString("0.#", CultureInfo.InvariantCulture)</td>
+                        <ThreadCell Main="mod.MainMs" Worker="mod.WorkerMs" />
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</ClientCharts>
+
+@if (_open != null)
+{
+    <h2>Where @_open spends its time</h2>
+
+    <ClientCharts View="modparts" Mod="@_open" ServerId="@ServerId" RangeMinutes="@RangeMinutes" Live="@Live" @key="@_open">
+        <div class="monitor-charts">
+            <ChartBox Id="modParts" Title="@("Inside " + _open + ", costliest 6")" Wide="true" />
+        </div>
+    </ClientCharts>
+
+    @if (_parts.Count == 0)
+    {
+        <p class="monitor-hint">Nothing from this one made the latest total's top rows.</p>
+    }
+    else
+    {
+        <table class="monitor-table">
+            <thead><tr><th>Part</th><th>Main ms/f</th><th>Workers ms/f</th><th>Peak ms</th><th>Calls/f</th><th>Thread</th><th></th></tr></thead>
+            <tbody>
+                @foreach (StoredGroup part in _parts)
+                {
+                    string name = ModNames.PartName(part.Name);
+
+                    <tr>
+                        <td title="@name">@name</td>
+                        <td>@Num(part.MainMs)</td>
+                        <td>@Num(part.WorkerMs)</td>
+                        <td>@Num(part.PeakMs)</td>
+                        <td>@part.CallsPerFrame.ToString("0.#", CultureInfo.InvariantCulture)</td>
+                        <ThreadCell Main="part.MainMs" Worker="part.WorkerMs" />
+                        <td class="monitor-actions"><button type="button" @onclick="() => OnLookInside.InvokeAsync(name)">Look inside</button></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+}
+
+@code {
+    private List<StoredGroup> _mods = [];
+    private List<StoredGroup> _parts = [];
+    private string? _open;
+    private string? _loadedServer;
+
+    [Parameter, EditorRequired] public string ServerId { get; set; } = string.Empty;
+
+    [Parameter, EditorRequired] public int RangeMinutes { get; set; }
+
+    [Parameter] public bool Live { get; set; } = true;
+
+    /// <summary>Changes on each page refresh. Blazor doesn't update a tab whose parameters all stayed the same.</summary>
+    [Parameter] public int Tick { get; set; }
+
+    /// <summary>Called with a part's name, to look inside it on the Inside tab.</summary>
+    [Parameter] public EventCallback<string> OnLookInside { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        if (ServerId != _loadedServer)
+        {
+            _loadedServer = ServerId;
+            _open = null;
+        }
+
+        Load();
+    }
+
+    private void Toggle(string mod)
+    {
+        _open = mod == _open ? null : mod;
+        Load();
+    }
+
+    private void Load()
+    {
+        _mods = Store.LatestGroups(ServerId, HistoryDimension.Mods);
+
+        _parts = _open == null
+            ? []
+            : Store.LatestGroups(ServerId, HistoryDimension.ModParts).Where(part => part.Name.StartsWith(ModNames.PartsOf(_open), StringComparison.Ordinal)).ToList();
+    }
+
+    private static string Num(float value) => value.ToString("0.00", CultureInfo.InvariantCulture);
+}

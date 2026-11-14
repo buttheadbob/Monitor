@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>SenX.Monitor.Quasar</AssemblyName>
+    <RootNamespace>SenX.Monitor.Quasar</RootNamespace>
+    <QuasarPluginAbstractionsProject Condition="'$(QuasarPluginAbstractionsProject)' == ''">../../../quasar/Quasar.Plugin.Abstractions/Quasar.Plugin.Abstractions.csproj</QuasarPluginAbstractionsProject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\SenX.Monitor\SenX.Monitor.csproj" />
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(QuasarPluginAbstractionsAssembly)' != '' and Exists('$(QuasarPluginAbstractionsAssembly)')">
+    <Reference Include="Quasar.Plugin.Abstractions">
+      <HintPath>$(QuasarPluginAbstractionsAssembly)</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+
+  <ItemGroup Condition="('$(QuasarPluginAbstractionsAssembly)' == '' or !Exists('$(QuasarPluginAbstractionsAssembly)')) and Exists('$(QuasarPluginAbstractionsProject)')">
+    <ProjectReference Include="$(QuasarPluginAbstractionsProject)" />
+  </ItemGroup>
+
+</Project>

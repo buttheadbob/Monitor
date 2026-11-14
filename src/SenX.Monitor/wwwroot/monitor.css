@@ -1,0 +1,210 @@
+/* Scoped to the plugin. Colors come from the host's palette, with dark fallbacks for the preview host. */
+.monitor-surface {
+    color: var(--quasar-palette-text-primary, #e6e9ee);
+    font: 13px system-ui, sans-serif;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.monitor-surface h1 { font-size: 25px; margin: 0; }
+.monitor-surface h2 { font-size: 15px; margin: 0 0 6px; }
+
+.monitor-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 14px; }
+.monitor-surface label { display: inline-flex; align-items: center; gap: 6px; color: var(--quasar-palette-text-secondary, #9aa4b2); }
+
+.monitor-surface select,
+.monitor-surface input[type="text"],
+.monitor-surface input[type="password"],
+.monitor-surface input[type="search"],
+.monitor-surface input[type="datetime-local"],
+.monitor-surface input[type="number"] {
+    background: var(--quasar-palette-surface, #1d2129);
+    color: inherit;
+    border: 1px solid var(--quasar-palette-lines-inputs, #3a414d);
+    border-radius: 4px;
+    padding: 4px 6px;
+}
+
+.monitor-surface button {
+    background: var(--quasar-palette-primary, #4c8bf5);
+    color: var(--quasar-palette-primary-contrast-text, #fff);
+    border: 0;
+    border-radius: 4px;
+    padding: 6px 12px;
+    cursor: pointer;
+}
+
+.monitor-surface button:disabled { opacity: 0.6; cursor: default; }
+
+.monitor-link {
+    color: var(--quasar-palette-primary, #4c8bf5);
+    border: 1px solid var(--quasar-palette-lines-inputs, #3a414d);
+    border-radius: 4px;
+    padding: 4px 10px;
+    text-decoration: none;
+}
+
+.monitor-link:hover { border-color: var(--quasar-palette-primary, #4c8bf5); }
+
+.monitor-notice {
+    border-left: 3px solid var(--quasar-palette-info, #56c8dc);
+    background: var(--quasar-palette-surface, #1d2129);
+    padding: 8px 12px;
+    margin: 0;
+}
+
+.monitor-hint { color: var(--quasar-palette-text-secondary, #9aa4b2); margin: 0; }
+.monitor-empty { color: var(--quasar-palette-text-secondary, #9aa4b2); margin: 4px 0 0; }
+
+/* Wraps onto a second line on a narrow screen, rather than making the whole page scroll sideways. */
+.monitor-tabs { display: flex; flex-wrap: wrap; gap: 4px; border-bottom: 1px solid var(--quasar-palette-divider, #2c323c); }
+
+.monitor-tabs button {
+    background: none;
+    color: var(--quasar-palette-text-secondary, #9aa4b2);
+    border-radius: 0;
+    border-bottom: 2px solid transparent;
+}
+
+.monitor-tabs button[aria-current="page"] {
+    color: var(--quasar-palette-text-primary, #e6e9ee);
+    border-bottom-color: var(--quasar-palette-primary, #4c8bf5);
+}
+
+.monitor-tiles { display: flex; flex-wrap: wrap; gap: 10px; align-items: stretch; }
+
+.monitor-stat,
+.monitor-chart {
+    background: var(--quasar-palette-surface, #1d2129);
+    border: 1px solid var(--quasar-palette-divider, #2c323c);
+    border-radius: 6px;
+    padding: 10px 12px;
+    margin: 0;
+    min-width: 0;
+}
+
+.monitor-stat { display: flex; flex-direction: column; justify-content: center; gap: 4px; min-width: 110px; }
+.monitor-stat span { color: var(--quasar-palette-text-secondary, #9aa4b2); }
+.monitor-stat b { font-size: 21px; font-weight: 600; }
+
+.monitor-charts { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(420px, 100%), 1fr)); gap: 10px; }
+.monitor-columns { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(520px, 100%), 1fr)); gap: 14px; }
+
+/* A grid cell would otherwise grow to its table's width and run over the next cell. Now a wide table scrolls inside its own cell. */
+.monitor-columns > * { min-width: 0; overflow-x: auto; }
+
+/* Lists as panels in two stacks: side by side on a wide screen, one above the other on a narrow one. */
+.monitor-panels { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(520px, 100%), 1fr)); gap: 14px; align-items: start; }
+.monitor-panel-stack { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.monitor-panel { min-width: 0; border: 1px solid var(--quasar-palette-divider, #2c323c); border-radius: 6px; }
+.monitor-panel > summary { display: flex; align-items: center; gap: 8px; padding: 6px 10px; cursor: pointer; list-style: none; user-select: none; }
+.monitor-panel > summary::-webkit-details-marker { display: none; }
+.monitor-panel > summary::before { content: "\25B8"; color: var(--quasar-palette-text-secondary, #9aa4b2); }
+.monitor-panel[open] > summary::before { content: "\25BE"; }
+.monitor-panel > summary h2 { margin: 0; font-size: 1rem; }
+.monitor-panel > summary:focus-visible { outline: 2px solid var(--quasar-palette-primary, #4c8bf5); outline-offset: -2px; }
+.monitor-panel-body { overflow-x: auto; padding: 0 6px 6px; }
+
+.monitor-chart-wide { grid-column: 1 / -1; }
+
+/* All servers: a gauge per server, wrapping to fit, two or three to a row on a phone. */
+.monitor-gauges { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; margin-bottom: 14px; }
+.monitor-gauge-group { font-size: 1rem; margin: 10px 0 6px; }
+.monitor-surface button.monitor-gauge-card { display: flex; flex-direction: column; align-items: stretch; gap: 4px; min-width: 0; padding: 8px; text-align: center; background: none; color: inherit; font: inherit; border: 1px solid var(--quasar-palette-divider, #2c323c); border-radius: 8px; cursor: pointer; }
+.monitor-gauge-card .monitor-gauge { margin: 0; padding: 0; border: 0; background: none; min-width: 0; box-sizing: border-box; }
+.monitor-surface button.monitor-gauge-card:hover { background: var(--quasar-palette-hover-background, rgba(128, 128, 128, 0.12)); }
+.monitor-gauge-card:focus-visible { outline: 2px solid var(--quasar-palette-primary, #4c8bf5); outline-offset: 2px; }
+.monitor-gauge-card .monitor-gauge figcaption { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.monitor-surface button.monitor-gauge-lag { border: 2px solid var(--quasar-palette-error, #e5534b); }
+.monitor-gauge-lag-word { color: var(--quasar-palette-error, #e5534b); margin-right: 4px; }
+.monitor-gauge-empty { opacity: 0.6; }
+.monitor-gauge-none { padding: 18px 0; color: var(--quasar-palette-text-secondary, #9aa4b2); }
+.monitor-gauge-facts { font-size: 12px; color: var(--quasar-palette-text-secondary, #9aa4b2); }
+.monitor-chart figcaption { font-weight: 600; margin-bottom: 6px; }
+.monitor-chart svg { display: block; width: 100%; height: auto; }
+
+.monitor-plot { min-height: 220px; }
+.monitor-plot .u-legend { color: var(--quasar-palette-text-secondary, #9aa4b2); font-size: 12px; }
+
+.monitor-legend { display: flex; flex-wrap: wrap; gap: 4px 14px; list-style: none; margin: 6px 0 0; padding: 0; color: var(--quasar-palette-text-secondary, #9aa4b2); }
+.monitor-legend li { display: inline-flex; align-items: center; gap: 5px; }
+.monitor-legend i { width: 10px; height: 10px; border-radius: 2px; background: var(--monitor-color); }
+.monitor-legend b { color: var(--quasar-palette-text-primary, #e6e9ee); font-weight: 500; }
+
+.monitor-donut > div { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; }
+.monitor-donut svg { width: 160px; flex: none; }
+.monitor-donut .monitor-legend { flex-direction: column; flex: 1; margin: 0; }
+.monitor-slice { fill: none; stroke: var(--monitor-color); stroke-width: 7; }
+
+.monitor-gauge { min-width: 170px; }
+.monitor-gauge svg { max-width: 170px; }
+.monitor-gauge path { fill: none; stroke-width: 9; }
+.monitor-gauge-track { stroke: var(--quasar-palette-divider, #2c323c); }
+.monitor-gauge-value { stroke: var(--monitor-color); }
+.monitor-gauge text { fill: var(--quasar-palette-text-primary, #e6e9ee); font-size: 16px; font-weight: 600; }
+
+.monitor-table { width: 100%; border-collapse: collapse; }
+.monitor-table th { text-align: left; color: var(--quasar-palette-text-secondary, #9aa4b2); font-weight: 500; }
+.monitor-table th,
+.monitor-table td { padding: 4px 8px; border-bottom: 1px solid var(--quasar-palette-table-lines, #2c323c); }
+.monitor-table td:not(:first-child),
+.monitor-table th:not(:first-child) { text-align: right; font-variant-numeric: tabular-nums; }
+
+/* Long names stop with an ellipsis, so the figures stay in view. The cell's tooltip has the whole name. The tree keeps its indented names whole. */
+.monitor-table:not(.monitor-tree) td:first-child { max-width: 32ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.monitor-table td.monitor-thread { white-space: nowrap; }
+
+/* Which threads a row ran on: a word, and a bar of game thread time against worker time. */
+.monitor-thread { white-space: nowrap; }
+.monitor-thread-tag { display: inline-block; min-width: 48px; padding: 0 6px; border-radius: 8px; font-size: 12px; text-align: center; border: 1px solid currentColor; }
+.monitor-thread-main { color: var(--quasar-palette-primary, #4c8bf5); }
+/* Worker time is grey, because it only costs the frame while the game thread waits for it. */
+.monitor-thread-worker { color: var(--quasar-palette-text-secondary, #9aa4b2); }
+.monitor-thread-mixed { color: var(--quasar-palette-secondary, #a371f7); }
+.monitor-split { display: inline-block; width: 48px; height: 6px; margin-left: 6px; vertical-align: middle; border-radius: 3px; overflow: hidden; background: var(--quasar-palette-text-secondary, #9aa4b2); }
+.monitor-split-main { display: block; height: 100%; background: var(--quasar-palette-primary, #4c8bf5); }
+
+.monitor-table tr[aria-current="true"] td { background: var(--quasar-palette-hover-background, rgba(128, 128, 128, 0.12)); }
+.monitor-actions { display: flex; gap: 4px; justify-content: flex-end; }
+
+.monitor-entity-action {
+    border: 1px solid var(--quasar-palette-divider, #2c323c);
+    border-radius: 4px;
+    background: none;
+    color: inherit;
+    font: inherit;
+    padding: 1px 6px;
+    cursor: pointer;
+}
+
+.monitor-entity-action:disabled { opacity: 0.6; cursor: default; }
+
+.monitor-tree-toggle {
+    width: 18px;
+    height: 18px;
+    padding: 0;
+    margin-right: 4px;
+    line-height: 1;
+}
+
+.monitor-settings summary { cursor: pointer; color: var(--quasar-palette-text-secondary, #9aa4b2); }
+.monitor-settings .monitor-row { justify-content: flex-start; margin-top: 8px; }
+.monitor-actions button { padding: 3px 8px; }
+
+/* One color per meaning, the same on every chart. */
+.monitor-c-physics { --monitor-color: var(--quasar-palette-error, #e5534b); }
+.monitor-c-network { --monitor-color: var(--quasar-palette-warning, #d9a441); }
+.monitor-c-session { --monitor-color: var(--quasar-palette-primary, #4c8bf5); }
+.monitor-c-other { --monitor-color: var(--quasar-palette-secondary, #a371f7); }
+.monitor-c-idle { --monitor-color: var(--quasar-palette-success, #3fb950); }
+
+/* Series with no meaning of their own, mixed from the palette so they follow the theme. */
+.monitor-c-0 { --monitor-color: var(--quasar-palette-info, #56c8dc); }
+.monitor-c-1 { --monitor-color: color-mix(in srgb, var(--quasar-palette-warning, #d9a441) 60%, var(--quasar-palette-error, #e5534b)); }
+.monitor-c-2 { --monitor-color: color-mix(in srgb, var(--quasar-palette-primary, #4c8bf5) 60%, var(--quasar-palette-success, #3fb950)); }
+.monitor-c-3 { --monitor-color: color-mix(in srgb, var(--quasar-palette-secondary, #a371f7) 60%, var(--quasar-palette-error, #e5534b)); }
+.monitor-c-4 { --monitor-color: color-mix(in srgb, var(--quasar-palette-success, #3fb950) 60%, var(--quasar-palette-warning, #d9a441)); }
+.monitor-c-5 { --monitor-color: color-mix(in srgb, var(--quasar-palette-text-secondary, #9aa4b2) 80%, var(--quasar-palette-primary, #4c8bf5)); }
+.monitor-c-6 { --monitor-color: color-mix(in srgb, var(--quasar-palette-info, #56c8dc) 60%, var(--quasar-palette-secondary, #a371f7)); }
+.monitor-c-7 { --monitor-color: color-mix(in srgb, var(--quasar-palette-error, #e5534b) 50%, var(--quasar-palette-primary, #4c8bf5)); }

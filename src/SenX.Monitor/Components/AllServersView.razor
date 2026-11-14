@@ -1,0 +1,127 @@
+@using System.Globalization
+@using SenX.Monitor.Components.Charts
+@using SenX.Monitor.Contracts
+@inject IMonitorServers Servers
+@inject HistoryStore Store
+@inject MonitorIncidents Incidents
+@inject MonitorCollector Collector
+
+@* Every connected server on one page: a gauge each, then charts with a line each. It reads only Quasar's own history. *@
+<ClientCharts View="all" ServerId="" RangeMinutes="@RangeMinutes" Live="@Live" RefreshMs="@ChartRefreshMs">
+    <p class="monitor-hint">
+        Every connected server. The dial is sim speed over the last 30 seconds. Click a server to open its own pages.
+        @(Fresh ? "These servers are kept up to date each second." : "With more than " + MostKeptFresh + " servers, these figures are up to 30 seconds old.")
+        @(_cards.Count == 1 ? "With one server, its own pages show more: pick it in the list above." : null)
+    </p>
+
+    @foreach (IGrouping<string, Card> group in _cards.GroupBy(card => card.Server.Cluster))
+    {
+        @if (group.Key.Length > 0)
+        {
+            <h2 class="monitor-gauge-group">@group.Key</h2>
+        }
+
+        <div class="monitor-gauges">
+            @foreach (Card card in group)
+            {
+                <button type="button" class="@CardClass(card)" title="@OpenTitle(card)" @onclick="() => OnPick.InvokeAsync(card.Server.HistoryId)">
+                    @if (card.Sim is { } sim)
+                    {
+                        <Gauge Title="@card.Server.Name" Value="@sim" />
+                    }
+                    else
+                    {
+                        <figure class="monitor-chart monitor-gauge">
+                            <figcaption>@card.Server.Name</figcaption>
+                            <div class="monitor-gauge-none">No data</div>
+                        </figure>
+                    }
+
+                    <span class="monitor-gauge-facts">
+                        @if (card.Lag)
+                        {
+                            <b class="monitor-gauge-lag-word">Lag</b>
+                        }
+                        @card.Facts
+                    </span>
+                </button>
+            }
+        </div>
+    }
+
+    <div class="monitor-charts">
+        <ChartBox Id="allSim" Title="Sim speed" />
+        <ChartBox Id="allAvailable" Title="Available frame time, worst 1%" />
+        <ChartBox Id="allFrames" Title="Frame p99" />
+        <ChartBox Id="allBusy" Title="Game thread busy" />
+        <ChartBox Id="allWorker" Title="Worker time, from background totals" />
+        <ChartBox Id="allPlayers" Title="Players online" />
+        <ChartBox Id="allPing" Title="Server ping" />
+        <ChartBox Id="allMemory" Title="Memory" />
+        <ChartBox Id="allGc" Title="Garbage collections, gen 2" />
+        <ChartBox Id="allSent" Title="Network sent" />
+        <ChartBox Id="allRpcs" Title="RPCs from clients" />
+        <ChartBox Id="allPcu" Title="PCU" />
+    </div>
+
+    <p class="monitor-hint">Click a server's name under a chart to hide or show its line. Lines after the eighth reuse the colours, dashed and then dotted.</p>
+</ClientCharts>
+
+@code {
+    /// <summary>Up to this many servers are pulled each second while the page is open. More would multiply pulls for one tab.</summary>
+    public const int MostKeptFresh = 5;
+
+    private const int FreshRefreshMs = 5000;
+    private const int SlowRefreshMs = 30000;
+    private static readonly TimeSpan s_recent = TimeSpan.FromSeconds(30);
+
+    private List<Card> _cards = [];
+
+    private sealed record Card(MonitorServer Server, double? Sim, bool Lag, string Facts);
+
+    [Parameter, EditorRequired] public int RangeMinutes { get; set; }
+
+    [Parameter] public bool Live { get; set; } = true;
+
+    /// <summary>Changes on each page refresh. Blazor doesn't update a view whose parameters all stayed the same.</summary>
+    [Parameter] public int Tick { get; set; }
+
+    /// <summary>Told which server was clicked, by its history id.</summary>
+    [Parameter] public EventCallback<string> OnPick { get; set; }
+
+    private bool Fresh => _cards.Count <= MostKeptFresh;
+
+    private static string CardClass(Card card) =>
+        "monitor-gauge-card" + (card.Lag ? " monitor-gauge-lag" : string.Empty) + (card.Sim == null ? " monitor-gauge-empty" : string.Empty);
+
+    private static string OpenTitle(Card card) => "Open " + card.Server.Name;
+
+    private int ChartRefreshMs => Fresh ? FreshRefreshMs : SlowRefreshMs;
+
+    protected override void OnParametersSet()
+    {
+        DateTime now = DateTime.UtcNow;
+        List<MonitorServer> connected = Servers.Connected().OrderBy(server => server.Name, StringComparer.Ordinal).ToList();
+
+        _cards = connected.Select(server =>
+        {
+            List<HistoryPoint> last = Store.Points(server.HistoryId, now - s_recent, now, 60);
+            HistoryCensus? census = Store.LatestCensus(server.HistoryId);
+            bool lag = Incidents.OpenSince(server.HistoryId) != null;
+
+            if (last.Count == 0)
+                return new Card(server, null, lag, Collector.Problem(server.HistoryId) ?? "Nothing collected yet");
+
+            double worst = last.Min(FrameParts.AvailableAtWorst);
+            string players = census == null ? string.Empty : census.OnlinePlayers.ToString(CultureInfo.InvariantCulture) + (census.OnlinePlayers == 1 ? " player, " : " players, ");
+            return new Card(server, last.Average(point => point.SimSpeed), lag, players + worst.ToString("0.0", CultureInfo.InvariantCulture) + " ms free at worst");
+        }).ToList();
+
+        // A few servers stay as fresh as one server's page keeps its own. Answered off the game thread, by the companion.
+        if (_cards.Count <= MostKeptFresh)
+        {
+            foreach (Card card in _cards)
+                Collector.Watch(card.Server.HistoryId);
+        }
+    }
+}

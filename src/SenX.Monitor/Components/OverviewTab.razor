@@ -1,0 +1,129 @@
+@using System.Globalization
+@using SenX.Monitor.Components.Charts
+@using SenX.Monitor.Contracts
+@inject HistoryStore Store
+@inject MonitorBaselines Baselines
+
+<ClientCharts View="overview" ServerId="@ServerId" RangeMinutes="@RangeMinutes" Live="@Live">
+    @if (_latest == null)
+    {
+        <p class="monitor-notice">Nothing collected from this server yet. It arrives within 30 seconds of the server connecting.</p>
+    }
+    else
+    {
+        <div class="monitor-tiles">
+            <Gauge Title="Sim speed, last 30 s" Value="@_simNow" />
+            <div class="monitor-stat" title="Time left in a frame before sim speed starts to fall, over the last 30 seconds."><span>Available</span><b>@Text(_available, "0.0") ms</b></div>
+            <div class="monitor-stat" title="The same, in the worst 1% of frames. This is the room there really is when things get busy."><span>Available, worst 1%</span><b>@Text(_availableAtWorst, "0.0") ms</b></div>
+            <div class="monitor-stat"><span>Frame p99</span><b>@Text(_latest.FrameP99, "0.0") ms</b></div>
+            <div class="monitor-stat"><span>Players online</span><b>@_census?.OnlinePlayers</b></div>
+            <div class="monitor-stat"><span>Server ping</span><b>@Text(_census?.PingMean, "0.0") ms</b></div>
+            <div class="monitor-stat"><span>Sending</span><b>@Text(_latest.SentKb, "0") KB/s</b></div>
+            <div class="monitor-stat"><span>Grids</span><b>@_census?.Grids</b></div>
+            <div class="monitor-stat"><span>Blocks</span><b>@_census?.Blocks.ToString("N0", CultureInfo.CurrentCulture)</b></div>
+            <div class="monitor-stat"><span>PCU</span><b>@_census?.Pcu.ToString("N0", CultureInfo.CurrentCulture)</b></div>
+            <div class="monitor-stat"><span>Memory</span><b>@(_census?.WorkingSetMb.ToString("N0", CultureInfo.CurrentCulture)) MB</b></div>
+            <div class="monitor-stat"><span>GC mode</span><b>@Store.GcMode(ServerId)</b></div>
+        </div>
+    }
+
+    @if (_unusual.Count > 0)
+    {
+        <p class="monitor-notice">Unusual for this hour: @string.Join("; ", _unusual).</p>
+    }
+
+    @if (_newCosts.Count > 0)
+    {
+        <p class="monitor-notice">New or jumped: @string.Join("; ", _newCosts.Take(NewCostsShown).Select(Describe)).</p>
+    }
+
+    <div class="monitor-charts">
+        <ChartBox Id="cause" Title="What's using the frame, against sim speed" Wide="true" />
+        <ChartBox Id="sim" Title="Sim speed" />
+        <ChartBox Id="headroom" Title="Available frame time" />
+        <Donut Title="Main thread now" Slices="@_now" />
+    </div>
+
+    @if (_jumps.Count > 0)
+    {
+        <h2>Thread changes</h2>
+        <p class="monitor-hint">Things whose time moved between the game thread and worker threads, and stayed for two background totals. Only game thread time can set off a lag alert, so these never do.</p>
+        <table class="monitor-table">
+            <thead><tr><th>When</th><th>What</th></tr></thead>
+            <tbody>
+                @foreach (StoredMarker jump in _jumps)
+                {
+                    <tr><td>@jump.Time.ToLocalTime().ToString("g", CultureInfo.CurrentCulture)</td><td>@jump.Text</td></tr>
+                }
+            </tbody>
+        </table>
+    }
+
+    @if (_events.Count > 0)
+    {
+        <h2>Events</h2>
+        <p class="monitor-hint">Dashed lines on the charts mark these. Saves aren't drawn on ranges over 6 hours.</p>
+        <table class="monitor-table">
+            <thead><tr><th>When</th><th>What</th></tr></thead>
+            <tbody>
+                @foreach (StoredMarker marker in _events)
+                {
+                    <tr><td>@marker.Time.ToLocalTime().ToString("g", CultureInfo.CurrentCulture)</td><td>@marker.Text</td></tr>
+                }
+            </tbody>
+        </table>
+    }
+</ClientCharts>
+
+@code {
+    private const int EventRows = 20;
+    private const int JumpRows = 20;
+    private const int NewCostsShown = 5;
+
+    private HistoryPoint? _latest;
+    private HistoryCensus? _census;
+    private double _simNow;
+    private double? _available;
+    private double? _availableAtWorst;
+    private List<ChartSlice> _now = [];
+    private List<StoredMarker> _events = [];
+    private List<StoredMarker> _jumps = [];
+    private List<string> _unusual = [];
+    private List<NewCost> _newCosts = [];
+
+    [Parameter, EditorRequired] public string ServerId { get; set; } = string.Empty;
+
+    [Parameter, EditorRequired] public int RangeMinutes { get; set; }
+
+    [Parameter] public bool Live { get; set; } = true;
+
+    /// <summary>Changes on each page refresh. Blazor doesn't update a tab whose parameters all stayed the same.</summary>
+    [Parameter] public int Tick { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        _latest = Store.Latest(ServerId);
+        _census = Store.LatestCensus(ServerId);
+        _unusual = Baselines.UnusualNow(ServerId);
+        _newCosts = Baselines.NewCosts(ServerId);
+        List<StoredMarker> markers = Store.Markers(ServerId, DateTime.UtcNow.AddMinutes(-RangeMinutes), DateTime.UtcNow);
+        _events = markers.Where(marker => marker.Kind != StoredMarkerKind.ThreadJump).Take(EventRows).ToList();
+        _jumps = markers.Where(marker => marker.Kind == StoredMarkerKind.ThreadJump).Take(JumpRows).ToList();
+
+        List<HistoryPoint> last = Store.Points(ServerId, DateTime.UtcNow.AddSeconds(-30), DateTime.UtcNow, 60);
+        _simNow = last.Count == 0 ? 0d : last.Average(point => point.SimSpeed);
+        _available = last.Count == 0 ? null : last.Average(FrameParts.Available);
+        _availableAtWorst = last.Count == 0 ? null : last.Min(FrameParts.AvailableAtWorst);
+
+        double[] now = _latest == null ? [] : FrameParts.Split(_latest);
+        _now = now.Select((value, index) => new ChartSlice(FrameParts.All[index].Name, FrameParts.All[index].Color, value)).ToList();
+    }
+
+    private static string Describe(NewCost cost) => cost.List + " " + cost.Name + " " + Text(cost.NowMs, "0.0") + " ms/f"
+        + (cost.NormalMs is { } normal ? ", usually " + Text(normal, "0.0") : ", not seen before");
+
+    private static string Text(double? value, string format) =>
+        value?.ToString(format, CultureInfo.InvariantCulture) ?? "-";
+
+    private static string Text(float? value, string format) => Text((double?)value, format);
+}

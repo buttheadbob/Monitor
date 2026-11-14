@@ -1,0 +1,83 @@
+# Build output
+[Bb]in/
+[Oo]bj/
+artifacts/
+publish/
+
+# Test and coverage output
+TestResults/
+coverage/
+*.coverage
+*.coveragexml
+*.trx
+
+# IDE/editor state
+.vs/
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.DotSettings.user
+_ReSharper*/
+
+# OS files
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Logs and diagnostics
+*.log
+logs/
+crashdumps/
+
+# Node/frontend output for plugins that add asset pipelines
+node_modules/
+dist/
+.npm/
+.pnpm-store/
+
+# NuGet/package output
+*.nupkg
+*.snupkg
+packages/
+
+# Quasar plugin packaging/cache output
+plugin-cache/
+plugin-package/
+*.zip
+*.tar.gz
+
+# Local environment/config overrides
+.env
+.env.*
+*.local.json
+
+# Benchmarks and local machine paths
+BenchmarkDotNet.Artifacts/
+Directory.Build.props.user
+Krafs.Publicizer.*.log
+
+# Links to the local Dedicated Server and Torch, made by the setup script
+GameBinaries
+TorchBinaries
+
+# Game IL that the Verify tool writes for diffing (--write-il). It is the game's code, so it never leaves this machine.
+il/
+*.il
+
+# Chart benchmark screenshots: large, and only generated data. The text results stay.
+docs/chart-benchmark/*.png
+
+# Copies of the tree made for checks or reviews, and files left by applying a patch
+*-snap/
+*-snap-*/
+*.snapshot/
+*.orig
+*.rej
+
+# Crash dumps from command line tools
+*.stackdump

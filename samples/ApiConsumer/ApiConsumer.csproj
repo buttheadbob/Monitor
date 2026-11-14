@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>ApiConsumer</AssemblyName>
+    <RootNamespace>ApiConsumer</RootNamespace>
+    <IsPackable>false</IsPackable>
+    <QuasarPluginAbstractionsProject Condition="'$(QuasarPluginAbstractionsProject)' == ''">../../../quasar/Quasar.Plugin.Abstractions/Quasar.Plugin.Abstractions.csproj</QuasarPluginAbstractionsProject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+
+    <!--
+      Compile against the API and don't ship it: Monitor brings the one copy. A real plugin links
+      to this project the same way, from its own copy of this repository.
+    -->
+    <ProjectReference Include="..\..\src\SenX.Monitor.Api\SenX.Monitor.Api.csproj" Private="false" ExcludeAssets="runtime" />
+  </ItemGroup>
+
+  <ItemGroup Condition="Exists('$(QuasarPluginAbstractionsProject)')">
+    <ProjectReference Include="$(QuasarPluginAbstractionsProject)" Private="false" />
+  </ItemGroup>
+
+</Project>

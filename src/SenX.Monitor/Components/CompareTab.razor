@@ -1,0 +1,166 @@
+@using System.Globalization
+@using SenX.Monitor.Contracts
+@inject HistoryStore Store
+@inject HistoryWindows Windows
+
+<p class="monitor-hint">Compares two stretches of history, such as before and after a restart or a mod change. These are background numbers, so use them for trends, and use a run to settle a cause.</p>
+
+<div class="monitor-row">
+    <label>
+        Around
+        <select @onchange="EventChanged">
+            <option value="">Pick an event</option>
+            @for (int index = 0; index < _events.Count; index++)
+            {
+                <option value="@index">@_events[index].Time.ToLocalTime().ToString("g", CultureInfo.CurrentCulture): @_events[index].Text</option>
+            }
+        </select>
+    </label>
+    <label>Minutes each side <input type="number" min="1" max="1440" @bind="_minutes" /></label>
+</div>
+
+<div class="monitor-row">
+    <label>Before, from <input type="datetime-local" @bind="_beforeFrom" /></label>
+    <label>to <input type="datetime-local" @bind="_beforeTo" /></label>
+    <label>After, from <input type="datetime-local" @bind="_afterFrom" /></label>
+    <label>to <input type="datetime-local" @bind="_afterTo" /></label>
+    <button type="button" @onclick="Run">Compare</button>
+</div>
+
+@if (_message != null)
+{
+    <p class="monitor-notice">@_message</p>
+}
+
+@if (_before is { } before && _after is { } after)
+{
+    <div class="monitor-tiles">
+        <div class="monitor-stat"><span>Sim speed</span><b>@Num(before.SimSpeed, "0.00") to @Num(after.SimSpeed, "0.00")</b></div>
+        <div class="monitor-stat"><span>Frame average</span><b>@Num(before.AverageFrameMs, "0.0") to @Num(after.AverageFrameMs, "0.0") ms</b></div>
+        <div class="monitor-stat"><span>Frame worst</span><b>@Num(before.WorstFrameMs, "0") to @Num(after.WorstFrameMs, "0") ms</b></div>
+        <div class="monitor-stat"><span>Available</span><b>@Num(before.AvailableMs, "0.0") to @Num(after.AvailableMs, "0.0") ms</b></div>
+    </div>
+
+    <p class="monitor-hint">A list holds each background total's top 20, so a dash means a row wasn't in that stretch's top, not that it cost nothing.</p>
+
+    <PanelGrid Page="compare" Items="@Panels()" />
+}
+
+@code {
+    private const int RowsPerList = 10;
+
+    private static readonly (string Name, HistoryDimension List)[] s_lists =
+    [
+        ("Grids", HistoryDimension.Grids),
+        ("Block types", HistoryDimension.BlockTypes),
+        ("Players", HistoryDimension.Owners),
+        ("Factions", HistoryDimension.Factions),
+        ("Session components", HistoryDimension.Session),
+        ("Game logic", HistoryDimension.Logic),
+        ("Scripts", HistoryDimension.Scripts),
+    ];
+
+    private List<StoredMarker> _events = [];
+    private int _minutes = 30;
+    private DateTime _beforeFrom = DateTime.Now.AddHours(-2);
+    private DateTime _beforeTo = DateTime.Now.AddHours(-1);
+    private DateTime _afterFrom = DateTime.Now.AddHours(-1);
+    private DateTime _afterTo = DateTime.Now;
+    private string? _message;
+    private string? _loadedServer;
+    private WindowSummary? _before;
+    private WindowSummary? _after;
+    private List<ComparedRow> _parts = [];
+    private List<(string Title, List<ComparedRow> Rows)> _lists = [];
+
+    [Parameter, EditorRequired] public string ServerId { get; set; } = string.Empty;
+
+    protected override void OnParametersSet()
+    {
+        if (ServerId == _loadedServer)
+            return;
+
+        _loadedServer = ServerId;
+        _before = null;
+        _after = null;
+        _message = null;
+        _events = Store.Markers(ServerId, DateTime.UtcNow.AddDays(-MonitorSettings.MaxRetentionDays), DateTime.UtcNow)
+            .Where(marker => marker.Kind is not StoredMarkerKind.Save and not StoredMarkerKind.ThreadJump)
+            .ToList();
+    }
+
+    private void EventChanged(ChangeEventArgs change)
+    {
+        if (!int.TryParse(change.Value?.ToString(), out int index) || index >= _events.Count)
+            return;
+
+        DateTime time = _events[index].Time.ToLocalTime();
+        _beforeFrom = time.AddMinutes(-_minutes);
+        _beforeTo = time;
+        _afterFrom = time;
+        _afterTo = time.AddMinutes(_minutes);
+        Run();
+    }
+
+    private void Run()
+    {
+        _before = null;
+        _after = null;
+
+        if (_beforeFrom >= _beforeTo || _afterFrom >= _afterTo)
+        {
+            _message = "Each stretch has to end after it starts.";
+            return;
+        }
+
+        DateTime beforeFrom = _beforeFrom.ToUniversalTime();
+        DateTime beforeTo = _beforeTo.ToUniversalTime();
+        DateTime afterFrom = _afterFrom.ToUniversalTime();
+        DateTime afterTo = _afterTo.ToUniversalTime();
+
+        WindowSummary before = Windows.Summarize(ServerId, beforeFrom, beforeTo);
+        WindowSummary after = Windows.Summarize(ServerId, afterFrom, afterTo);
+
+        if (!before.HasData || !after.HasData)
+        {
+            _message = "There's no history for " + (before.HasData ? "the second" : "the first") + " stretch.";
+            return;
+        }
+
+        _message = null;
+        _before = before;
+        _after = after;
+
+        _parts = RunComparison.Join(Parts(before), Parts(after));
+        _lists = s_lists
+            .Select(list => (list.Name, HistoryWindows.Compare(Windows.List(ServerId, list.List, beforeFrom, beforeTo), Windows.List(ServerId, list.List, afterFrom, afterTo)).Take(RowsPerList).ToList()))
+            .Where(list => list.Item2.Count > 0)
+            .ToList();
+    }
+
+    private static Dictionary<string, double> Parts(WindowSummary window)
+    {
+        var parts = new Dictionary<string, double>();
+
+        for (int part = 0; part < window.Parts.Count; part++)
+            parts[FrameParts.All[part].Name] = window.Parts[part];
+
+        return parts;
+    }
+
+    private static string Num(double value, string format) => value.ToString(format, CultureInfo.InvariantCulture);
+
+    // Frame first, then each list, in two stacks. Mods sit above entity types when both are there.
+    private List<PanelGrid.PanelItem> Panels()
+    {
+        var panels = new List<PanelGrid.PanelItem> { new("Frame", _parts.Count, @<ComparedTable Rows="@_parts" />) };
+
+        foreach ((string title, List<ComparedRow> rows) in _lists)
+        {
+            string? group = title is "Mods and plugins" or "Entity types" ? "mods-entities" : null;
+            panels.Add(new PanelGrid.PanelItem(title, rows.Count, @<ComparedTable Rows="@rows" />, group));
+        }
+
+        return panels;
+    }
+}

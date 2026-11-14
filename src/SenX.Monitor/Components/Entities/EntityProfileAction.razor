@@ -1,0 +1,52 @@
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using SenX.Monitor.Contracts
+@inject IMonitorServers Servers
+@inject MonitorRuns Runs
+@inject IAuthorizationService Authorization
+@inject AuthenticationStateProvider Authentication
+
+@if (EntityType == "Grid" && Target is { } target)
+{
+    <button type="button"
+            class="monitor-entity-action"
+            title="@(_note ?? "Times every call on this grid for " + Seconds + " seconds. The result is on Monitor's Runs tab.")"
+            disabled="@Runs.Running(target.HistoryId)"
+            @onclick="() => ProfileAsync(target)">
+        @(Runs.Running(target.HistoryId) ? "Measuring" : "Profile")
+    </button>
+}
+
+@code {
+    private const int Seconds = 10;
+
+    private string? _note;
+
+    [Parameter] public string? AgentId { get; set; }
+
+    [Parameter] public long EntityId { get; set; }
+
+    [Parameter] public string? EntityType { get; set; }
+
+    // Quasar passes every entity detail to every contribution, and a component must accept them all.
+    [Parameter(CaptureUnmatchedValues = true)] public Dictionary<string, object> Other { get; set; } = [];
+
+    private MonitorServer? Target => Servers.Connected().FirstOrDefault(row => row.AgentId == AgentId);
+
+    private async Task ProfileAsync(MonitorServer target)
+    {
+        // A hidden button isn't access control, and a run adds cost to a live server.
+        AuthenticationState state = await Authentication.GetAuthenticationStateAsync();
+        if (!(await Authorization.AuthorizeAsync(state.User, MonitorPolicies.Control)).Succeeded)
+            return;
+
+        try
+        {
+            _note = await Runs.StartAsync(target, new RunStartRequest { Seconds = Seconds, GridId = EntityId, Clusters = false }, CancellationToken.None);
+        }
+        catch (Exception exception) when (exception is InvalidOperationException or TimeoutException)
+        {
+            _note = "The server didn't answer: " + exception.Message;
+        }
+    }
+}

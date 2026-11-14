@@ -1,0 +1,24 @@
+@using System.Globalization
+
+<table class="monitor-table">
+    <thead><tr><th>Name</th><th>Before ms/f</th><th>After ms/f</th><th>Change</th></tr></thead>
+    <tbody>
+        @foreach (ComparedRow row in Rows)
+        {
+            <tr>
+                <td title="@row.Name">@row.Name</td>
+                <td>@Maybe(row.Before)</td>
+                <td>@Maybe(row.After)</td>
+                <td>@Change(row.Change)</td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<ComparedRow> Rows { get; set; } = [];
+
+    private static string Maybe(double? value) => value?.ToString("0.00", CultureInfo.InvariantCulture) ?? "-";
+
+    private static string Change(double? value) => value?.ToString("+0.00;-0.00;0.00", CultureInfo.InvariantCulture) ?? "-";
+}

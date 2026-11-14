@@ -1,0 +1,150 @@
+@using System.Globalization
+@using SenX.Monitor.Components.Charts
+@using SenX.Monitor.Contracts
+@inject HistoryStore Store
+@inject HistoryWindows Windows
+@inject MonitorSettings Settings
+@inject MonitorCollector Collector
+
+<ClientCharts View="world" ServerId="@ServerId" RangeMinutes="@RangeMinutes" Live="@Live">
+    <div class="monitor-charts">
+        <ChartBox Id="online" Title="Who was online" Wide="true" />
+        <ChartBox Id="players" Title="Players online" />
+        <ChartBox Id="blocks" Title="Total blocks" />
+        <ChartBox Id="pcu" Title="PCU" />
+        <ChartBox Id="ping" Title="Server ping" />
+        <Donut Title="Blocks by faction" Slices="@_blocksByFaction" Unit="" MinimumToShow="1" />
+        <Donut Title="Online members by faction" Slices="@_membersByFaction" Unit="" MinimumToShow="1" />
+    </div>
+</ClientCharts>
+
+<div class="monitor-columns">
+    @if (_offline.Count > 0)
+    {
+        <section>
+            <h2>Costing time while offline</h2>
+            <p class="monitor-hint">From the latest background total, so it only shows owners in that total's top 20.</p>
+            <table class="monitor-table">
+                <thead><tr><th>Owner</th><th>Main ms/f</th><th>Workers ms/f</th><th>Thread</th></tr></thead>
+                <tbody>
+                    @foreach (StoredGroup owner in _offline)
+                    {
+                        <tr><td title="@owner.Name">@owner.Name</td><td>@owner.MainMs.ToString("0.00", CultureInfo.InvariantCulture)</td><td>@owner.WorkerMs.ToString("0.00", CultureInfo.InvariantCulture)</td><ThreadCell Main="owner.MainMs" Worker="owner.WorkerMs" /></tr>
+                    }
+                </tbody>
+            </table>
+        </section>
+    }
+
+    <section>
+        <h2>Capacity</h2>
+        <p class="monitor-hint">How frame time has moved with players, over all the history kept. This reads a lot of files, so it only runs when asked.</p>
+        <button type="button" @onclick="WorkOutCapacity">Work it out</button>
+
+        @if (_capacity is { } capacity)
+        {
+            @if (capacity.Rows.Count == 0)
+            {
+                <p class="monitor-hint">There isn't enough history yet.</p>
+            }
+            else
+            {
+                <table class="monitor-table">
+                    <thead><tr><th>Players</th><th>Frame ms</th><th>Worst 1% ms</th><th>Census passes</th></tr></thead>
+                    <tbody>
+                        @foreach (CapacityRow row in capacity.Rows)
+                        {
+                            <tr>
+                                <td>@row.PlayersFrom to @row.PlayersTo</td>
+                                <td>@row.FrameMs.ToString("0.0", CultureInfo.InvariantCulture)</td>
+                                <td>@row.WorstMs.ToString("0.0", CultureInfo.InvariantCulture)</td>
+                                <td>@row.Moments</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+
+                <p class="monitor-hint">@(capacity.PlayersAtBudget is { } players
+                    ? "A straight line through this reaches the frame budget at about " + players + " players. Treat it as a guide, because load doesn't always grow in a straight line."
+                    : "The history doesn't fit a line well enough to say where the limit is.")</p>
+            }
+        }
+    </section>
+
+    <section>
+        <h2>Players online</h2>
+        <table class="monitor-table">
+            <thead><tr><th>Player</th><th>Faction</th><th>Ping ms</th></tr></thead>
+            <tbody>
+                @foreach (HistoryPlayer player in _world.Players.OrderByDescending(player => player.PingMs))
+                {
+                    <tr><td>@Name(HistoryDimension.Owners, player.IdentityId)</td><td>@Name(HistoryDimension.Factions, player.FactionId)</td><td>@player.PingMs</td></tr>
+                }
+            </tbody>
+        </table>
+    </section>
+
+    <section>
+        <h2>Factions</h2>
+        <table class="monitor-table">
+            <thead><tr><th>Faction</th><th>Online</th><th>Grids</th><th>Blocks</th><th>PCU</th></tr></thead>
+            <tbody>
+                @foreach (HistoryFaction faction in _world.Factions.OrderByDescending(faction => faction.Blocks))
+                {
+                    <tr><td>@Name(HistoryDimension.Factions, faction.FactionId)</td><td>@faction.OnlineMembers</td><td>@faction.Grids</td><td>@faction.Blocks.ToString("N0", CultureInfo.CurrentCulture)</td><td>@faction.Pcu.ToString("N0", CultureInfo.CurrentCulture)</td></tr>
+                }
+            </tbody>
+        </table>
+    </section>
+</div>
+
+@code {
+    private WorldNow _world = new([], []);
+    private List<ChartSlice> _blocksByFaction = [];
+    private List<ChartSlice> _membersByFaction = [];
+    private List<StoredGroup> _offline = [];
+    private CapacityReport? _capacity;
+    private string? _capacityServer;
+
+    [Parameter, EditorRequired] public string ServerId { get; set; } = string.Empty;
+
+    [Parameter, EditorRequired] public int RangeMinutes { get; set; }
+
+    [Parameter] public bool Live { get; set; } = true;
+
+    /// <summary>Changes on each page refresh. Blazor doesn't update a tab whose parameters all stayed the same.</summary>
+    [Parameter] public int Tick { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        _world = Store.World(ServerId);
+        _blocksByFaction = Slices(faction => faction.Blocks);
+        _membersByFaction = Slices(faction => faction.OnlineMembers);
+
+        // Both lists get their names from the same lookup, so a name is enough to match them.
+        HashSet<string> online = _world.Players.Select(player => Name(HistoryDimension.Owners, player.IdentityId)).ToHashSet();
+        _offline = Store.LatestGroups(ServerId, HistoryDimension.Owners).Where(owner => !online.Contains(owner.Name)).ToList();
+
+        if (ServerId != _capacityServer)
+            _capacity = null;
+    }
+
+    private void WorkOutCapacity()
+    {
+        _capacityServer = ServerId;
+        _capacity = Windows.Capacity(ServerId, DateTime.UtcNow - Settings.Retention, DateTime.UtcNow);
+    }
+
+    private List<ChartSlice> Slices(Func<HistoryFaction, double> value) => _world.Factions
+        .OrderByDescending(value)
+        .Take(12)
+        .Select(faction =>
+        {
+            string name = Name(HistoryDimension.Factions, faction.FactionId);
+            return new ChartSlice(name, ChartColors.For(name), value(faction));
+        })
+        .ToList();
+
+    private string Name(HistoryDimension kind, long key) =>
+        Collector.NameOf(ServerId, kind, key) ?? key.ToString(CultureInfo.InvariantCulture);
+}

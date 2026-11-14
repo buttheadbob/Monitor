@@ -1,0 +1,137 @@
+@using System.Globalization
+@using SenX.Monitor.Components.Charts
+@using SenX.Monitor.Contracts
+@inject HistoryStore Store
+@inject MonitorCollector Collector
+
+<ClientCharts View="network" ServerId="@ServerId" RangeMinutes="@RangeMinutes" Live="@Live">
+    <p class="monitor-hint">Bytes are counted all the time, as they're handed to Steam or EOS and as they arrive. Sim speed can read 1.00 while players rubberband, and that usually shows here: a queue that keeps growing means a player can't take what the server's sending.</p>
+
+    @if (_latest != null)
+    {
+        <div class="monitor-tiles">
+            <div class="monitor-stat"><span>Sending</span><b>@_latest.SentKb.ToString("0.0", CultureInfo.InvariantCulture) KB/s</b></div>
+            <div class="monitor-stat"><span>Receiving</span><b>@_latest.ReceivedKb.ToString("0.0", CultureInfo.InvariantCulture) KB/s</b></div>
+            <div class="monitor-stat"><span>RPCs from clients</span><b>@_latest.RpcsIn.ToString("0", CultureInfo.InvariantCulture)/s</b></div>
+        </div>
+    }
+
+    <div class="monitor-charts">
+        <ChartBox Id="traffic" Title="Sent and received" />
+        <ChartBox Id="trafficKinds" Title="What's being sent" />
+        <ChartBox Id="rpcRate" Title="RPCs from clients" />
+        <ChartBox Id="rpcs" Title="RPCs received, costliest 6" />
+    </div>
+</ClientCharts>
+
+<div class="monitor-columns">
+    <section>
+        <h2>Players now</h2>
+        <p class="monitor-hint">Averages since the last census, about 30 seconds. Steam reports what's queued, and EOS doesn't, so EOS players always show 0 there.</p>
+        <table class="monitor-table">
+            <thead><tr><th>Player</th><th>Down KB/s</th><th>Up KB/s</th><th>RPCs/s</th><th>Queued KB</th><th>Refused</th><th>Ping ms</th></tr></thead>
+            <tbody>
+                @foreach (HistoryPlayer player in _players)
+                {
+                    <tr>
+                        <td>@Name(player)</td>
+                        <td>@Kb(player.SentBytesPerSecond)</td>
+                        <td>@Kb(player.ReceivedBytesPerSecond)</td>
+                        <td>@player.RpcsPerSecond</td>
+                        <td>@Kb(player.QueuedBytes)</td>
+                        <td>@player.FailedSends</td>
+                        <td>@player.PingMs</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </section>
+
+    <section>
+        <h2>RPCs sent</h2>
+        <p class="monitor-hint">Bytes across everyone who got each one, from the latest total. This is what to look at when events are most of what's being sent. State sync and replication aren't RPCs, so they aren't here.</p>
+
+        @if (_sent.Count == 0)
+        {
+            <p class="monitor-notice">No RPCs in the latest total. Totals arrive every 30 seconds while detail is on.</p>
+        }
+        else
+        {
+            <table class="monitor-table">
+                <thead><tr><th>RPC</th><th>KB/s</th><th>Events/f</th></tr></thead>
+                <tbody>
+                    @foreach (StoredGroup rpc in _sent)
+                    {
+                        <tr>
+                            <td>@rpc.Name</td>
+                            <td>@((rpc.BytesPerSecond / 1024f).ToString("0.0", CultureInfo.InvariantCulture))</td>
+                            <td>@rpc.CallsPerFrame.ToString("0.#", CultureInfo.InvariantCulture)</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </section>
+
+    <section>
+        <h2>RPCs from clients</h2>
+        <p class="monitor-hint">From background totals, so use this for trends and <code>!monitor rpcs</code> or a run to settle a cause. Each one's time covers checking it and running it.</p>
+
+        @if (_rpcs.Count == 0)
+        {
+            <p class="monitor-notice">No RPCs in the latest total. Totals arrive every 30 seconds while detail is on.</p>
+        }
+        else
+        {
+            <table class="monitor-table">
+                <thead><tr><th>RPC</th><th>Main ms/f</th><th>Peak ms</th><th>Calls/f</th><th></th></tr></thead>
+                <tbody>
+                    @foreach (StoredGroup rpc in _rpcs)
+                    {
+                        <tr>
+                            <td>@rpc.Name</td>
+                            <td>@Num(rpc.MainMs)</td>
+                            <td>@Num(rpc.PeakMs)</td>
+                            <td>@rpc.CallsPerFrame.ToString("0.#", CultureInfo.InvariantCulture)</td>
+                            <td class="monitor-actions"><button type="button" @onclick="() => OnLookInside.InvokeAsync(rpc.Name)">Look inside</button></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </section>
+</div>
+
+@code {
+    private HistoryPoint? _latest;
+    private List<HistoryPlayer> _players = [];
+    private List<StoredGroup> _rpcs = [];
+    private List<StoredGroup> _sent = [];
+
+    [Parameter, EditorRequired] public string ServerId { get; set; } = string.Empty;
+
+    [Parameter, EditorRequired] public int RangeMinutes { get; set; }
+
+    [Parameter] public bool Live { get; set; } = true;
+
+    /// <summary>Changes on each page refresh. Blazor doesn't update a tab whose parameters all stayed the same.</summary>
+    [Parameter] public int Tick { get; set; }
+
+    /// <summary>Called with an RPC's name, to look inside it on the Inside tab.</summary>
+    [Parameter] public EventCallback<string> OnLookInside { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        _latest = Store.Latest(ServerId);
+        _players = Store.World(ServerId).Players.OrderByDescending(player => player.SentBytesPerSecond).ToList();
+        _rpcs = Store.LatestGroups(ServerId, HistoryDimension.Rpcs);
+        _sent = Store.LatestGroups(ServerId, HistoryDimension.RpcsSent);
+    }
+
+    private string Name(HistoryPlayer player) =>
+        Collector.NameOf(ServerId, HistoryDimension.Owners, player.IdentityId) ?? player.IdentityId.ToString(CultureInfo.InvariantCulture);
+
+    private static string Kb(uint bytes) => (bytes / 1024d).ToString("0.0", CultureInfo.InvariantCulture);
+
+    private static string Num(float value) => value.ToString("0.00", CultureInfo.InvariantCulture);
+}

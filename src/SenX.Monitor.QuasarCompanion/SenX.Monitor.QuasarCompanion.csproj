@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- The Magnetar side of the Quasar plugin. Quasar builds it when the plugin is installed, passing
+       MagnetarProtocolAssembly and DS64, and copies it to every managed server. It passes Quasar's requests to
+       the Monitor Magnetar plugin (src/SenX.Monitor.Magnetar/QuasarBridge.cs). -->
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <AssemblyName>SenX.Monitor.QuasarCompanion</AssemblyName>
+    <RootNamespace>SenX.Monitor.QuasarCompanion</RootNamespace>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <OutputType>Library</OutputType>
+    <Platforms>x64</Platforms>
+    <PlatformTarget>x64</PlatformTarget>
+
+    <MagnetarProtocolProject Condition="'$(MagnetarProtocolProject)' == ''">../../../quasar/Magnetar.Protocol/Magnetar.Protocol.csproj</MagnetarProtocolProject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="VRage" HintPath="$(DS64)\VRage.dll" Private="False" />
+    <Reference Include="VRage.Game" HintPath="$(DS64)\VRage.Game.dll" Private="False" />
+    <Reference Include="VRage.Library" HintPath="$(DS64)\VRage.Library.dll" Private="False" />
+  </ItemGroup>
+
+  <!-- Built by Quasar: the protocol assembly of the running Quasar, which Quasar deploys to servers itself. -->
+  <ItemGroup Condition="'$(MagnetarProtocolAssembly)' != '' And Exists('$(MagnetarProtocolAssembly)')">
+    <Reference Include="Magnetar.Protocol" HintPath="$(MagnetarProtocolAssembly)" Private="False" />
+  </ItemGroup>
+
+  <!-- Local builds: a quasar checkout next to this repository. -->
+  <ItemGroup Condition="('$(MagnetarProtocolAssembly)' == '' Or !Exists('$(MagnetarProtocolAssembly)')) And Exists('$(MagnetarProtocolProject)')">
+    <ProjectReference Include="$(MagnetarProtocolProject)" Private="False" />
+  </ItemGroup>
+
+</Project>

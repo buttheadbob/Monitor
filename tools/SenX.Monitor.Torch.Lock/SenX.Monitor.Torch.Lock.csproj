@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Writes the Torch build's fingerprints. Everything loads from the Torch folder on the command line. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net48</TargetFramework>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <PlatformTarget>x64</PlatformTarget>
+    <Platforms>x64</Platforms>
+    <AutoGenerateBindingRedirects>false</AutoGenerateBindingRedirects>
+    <TorchDir Condition="'$(TorchDir)' == ''">$(DS64)\..</TorchDir>
+    <!-- This tool loads assemblies through its own resolver, so versions in the build don't matter. -->
+    <MSBuildWarningsAsMessages>$(MSBuildWarningsAsMessages);MSB3276</MSBuildWarningsAsMessages>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\SenX.Monitor.Torch\SenX.Monitor.Torch.csproj" />
+    <Reference Include="Torch" HintPath="$(TorchDir)\Torch.dll" Private="False" />
+    <Reference Include="Torch.API" HintPath="$(TorchDir)\Torch.API.dll" Private="False" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,1152 @@
+SenX.Monitor.Api.IMonitorApi
+  Int32 Version
+  Int32 get_Version()
+  SenX.Monitor.Api.IMonitorTools For(System.String)
+  SenX.Monitor.Api.MonitorLatest Latest(System.String)
+  System.Action`1[SenX.Monitor.Api.MonitorEvent] EventRecorded
+  System.Action`1[SenX.Monitor.Api.MonitorIncident] IncidentChanged
+  System.Action`1[SenX.Monitor.Api.MonitorRunFinished] RunFinished
+  System.Collections.Generic.IReadOnlyList`1[SenX.Monitor.Api.MonitorSavedRun] SavedRuns(System.String)
+  System.Collections.Generic.IReadOnlyList`1[SenX.Monitor.Api.MonitorServerInfo] Servers()
+  System.Threading.Tasks.Task`1[SenX.Monitor.Api.MonitorReply] RequestAsync(SenX.Monitor.Api.MonitorRequest, System.Threading.CancellationToken)
+  Void KeepFresh(System.String)
+  Void add_EventRecorded(System.Action`1[SenX.Monitor.Api.MonitorEvent])
+  Void add_IncidentChanged(System.Action`1[SenX.Monitor.Api.MonitorIncident])
+  Void add_RunFinished(System.Action`1[SenX.Monitor.Api.MonitorRunFinished])
+  Void remove_EventRecorded(System.Action`1[SenX.Monitor.Api.MonitorEvent])
+  Void remove_IncidentChanged(System.Action`1[SenX.Monitor.Api.MonitorIncident])
+  Void remove_RunFinished(System.Action`1[SenX.Monitor.Api.MonitorRunFinished])
+SenX.Monitor.Api.IMonitorServerApi
+  Int32 Version
+  Int32 get_Version()
+SenX.Monitor.Api.IMonitorTools
+  SenX.Monitor.Api.MonitorLatest Latest()
+  SenX.Monitor.Api.MonitorRunProgress CurrentRun()
+  SenX.Monitor.Api.MonitorStatus Status()
+  System.Action`1[SenX.Monitor.Api.MonitorEvent] EventRecorded
+  System.Action`1[SenX.Monitor.Api.MonitorIncident] IncidentChanged
+  System.Action`1[SenX.Monitor.Api.MonitorRunFinished] RunFinished
+  System.Action`1[SenX.Monitor.Api.MonitorSample] SampleRecorded
+  System.String Server
+  System.String get_Server()
+  System.Threading.Tasks.Task`1[SenX.Monitor.Api.MonitorAudit] AuditAsync(System.Collections.Generic.IReadOnlyCollection`1[System.String], Int32, System.String, System.Threading.CancellationToken)
+  System.Threading.Tasks.Task`1[SenX.Monitor.Api.MonitorComparison] CompareAsync(SenX.Monitor.Api.MonitorRange, SenX.Monitor.Api.MonitorRange, System.Collections.Generic.IReadOnlyCollection`1[SenX.Monitor.Api.MonitorList], System.Threading.CancellationToken)
+  System.Threading.Tasks.Task`1[SenX.Monitor.Api.MonitorHistory] HistoryAsync(System.DateTime, System.DateTime, System.Threading.CancellationToken)
+  System.Threading.Tasks.Task`1[SenX.Monitor.Api.MonitorInside] LookInsideAsync(System.String, Int32, System.String, System.Threading.CancellationToken)
+  System.Threading.Tasks.Task`1[SenX.Monitor.Api.MonitorReply] CostsAsync(System.DateTime, System.DateTime, System.Collections.Generic.IReadOnlyCollection`1[SenX.Monitor.Api.MonitorList], System.Threading.CancellationToken)
+  System.Threading.Tasks.Task`1[SenX.Monitor.Api.MonitorReply] MeasureAsync(SenX.Monitor.Api.MonitorRunOptions, System.Threading.CancellationToken)
+  System.Threading.Tasks.Task`1[SenX.Monitor.Api.MonitorReply] RequestAsync(SenX.Monitor.Api.MonitorRequest, System.Threading.CancellationToken)
+  System.Threading.Tasks.Task`1[SenX.Monitor.Api.MonitorReply] SavedRunAsync(System.String, System.Collections.Generic.IReadOnlyCollection`1[SenX.Monitor.Api.MonitorList], System.Threading.CancellationToken)
+  System.Threading.Tasks.Task`1[System.Byte[]] ChartImageAsync(SenX.Monitor.Api.MonitorChart, System.DateTime, System.DateTime, Int32, Int32, System.Threading.CancellationToken)
+  System.Threading.Tasks.Task`1[System.Collections.Generic.IReadOnlyList`1[SenX.Monitor.Api.MonitorCostPoint]] CostHistoryAsync(SenX.Monitor.Api.MonitorList, Int64, System.DateTime, System.DateTime, System.Threading.CancellationToken)
+  System.Threading.Tasks.Task`1[System.Collections.Generic.IReadOnlyList`1[SenX.Monitor.Api.MonitorCostPoint]] CostHistoryAsync(SenX.Monitor.Api.MonitorList, System.String, System.DateTime, System.DateTime, System.Threading.CancellationToken)
+  System.Threading.Tasks.Task`1[System.Collections.Generic.IReadOnlyList`1[SenX.Monitor.Api.MonitorEvent]] EventsAsync(System.DateTime, System.DateTime, System.Threading.CancellationToken)
+  System.Threading.Tasks.Task`1[System.Collections.Generic.IReadOnlyList`1[SenX.Monitor.Api.MonitorFactionNow]] FactionsAsync(System.Threading.CancellationToken)
+  System.Threading.Tasks.Task`1[System.Collections.Generic.IReadOnlyList`1[SenX.Monitor.Api.MonitorIncident]] IncidentsAsync(System.Threading.CancellationToken)
+  System.Threading.Tasks.Task`1[System.Collections.Generic.IReadOnlyList`1[SenX.Monitor.Api.MonitorMethod]] FindMethodsAsync(System.String, System.Threading.CancellationToken)
+  System.Threading.Tasks.Task`1[System.Collections.Generic.IReadOnlyList`1[SenX.Monitor.Api.MonitorPatchedMethod]] PatchesAsync(System.Threading.CancellationToken)
+  System.Threading.Tasks.Task`1[System.Collections.Generic.IReadOnlyList`1[SenX.Monitor.Api.MonitorPlayerNow]] PlayersAsync(System.Threading.CancellationToken)
+  System.Threading.Tasks.Task`1[System.Collections.Generic.IReadOnlyList`1[SenX.Monitor.Api.MonitorRow]] TopAsync(SenX.Monitor.Api.MonitorList, Int32, System.Threading.CancellationToken)
+  System.Threading.Tasks.Task`1[System.Collections.Generic.IReadOnlyList`1[SenX.Monitor.Api.MonitorSample]] SamplesAsync(System.DateTime, System.DateTime, System.Collections.Generic.IReadOnlyCollection`1[SenX.Monitor.Api.MonitorList], Int32, System.Threading.CancellationToken)
+  System.Threading.Tasks.Task`1[System.Collections.Generic.IReadOnlyList`1[SenX.Monitor.Api.MonitorSavedRun]] SavedRunsAsync(System.Threading.CancellationToken)
+  Void add_EventRecorded(System.Action`1[SenX.Monitor.Api.MonitorEvent])
+  Void add_IncidentChanged(System.Action`1[SenX.Monitor.Api.MonitorIncident])
+  Void add_RunFinished(System.Action`1[SenX.Monitor.Api.MonitorRunFinished])
+  Void add_SampleRecorded(System.Action`1[SenX.Monitor.Api.MonitorSample])
+  Void remove_EventRecorded(System.Action`1[SenX.Monitor.Api.MonitorEvent])
+  Void remove_IncidentChanged(System.Action`1[SenX.Monitor.Api.MonitorIncident])
+  Void remove_RunFinished(System.Action`1[SenX.Monitor.Api.MonitorRunFinished])
+  Void remove_SampleRecorded(System.Action`1[SenX.Monitor.Api.MonitorSample])
+SenX.Monitor.Api.MonitorAccuracy
+  Int32 value__
+  SenX.Monitor.Api.MonitorAccuracy Background
+  SenX.Monitor.Api.MonitorAccuracy EveryCall
+SenX.Monitor.Api.MonitorAudit
+  Boolean Equals(SenX.Monitor.Api.MonitorAudit)
+  Boolean Equals(System.Object)
+  Boolean op_Equality(SenX.Monitor.Api.MonitorAudit, SenX.Monitor.Api.MonitorAudit)
+  Boolean op_Inequality(SenX.Monitor.Api.MonitorAudit, SenX.Monitor.Api.MonitorAudit)
+  Int32 GetHashCode()
+  Int32 Seconds
+  Int32 get_Seconds()
+  SenX.Monitor.Api.MonitorAudit <Clone>$()
+  SenX.Monitor.Api.MonitorReplyState State
+  SenX.Monitor.Api.MonitorReplyState get_State()
+  System.Collections.Generic.IReadOnlyList`1[SenX.Monitor.Api.MonitorAuditRow] Rows
+  System.Collections.Generic.IReadOnlyList`1[SenX.Monitor.Api.MonitorAuditRow] get_Rows()
+  System.String Message
+  System.String ToString()
+  System.String get_Message()
+  Void .ctor()
+  Void set_Message(System.String)
+  Void set_Rows(System.Collections.Generic.IReadOnlyList`1[SenX.Monitor.Api.MonitorAuditRow])
+  Void set_Seconds(Int32)
+  Void set_State(SenX.Monitor.Api.MonitorReplyState)
+SenX.Monitor.Api.MonitorAuditRow
+  Boolean Equals(SenX.Monitor.Api.MonitorAuditRow)
+  Boolean Equals(System.Object)
+  Boolean Transpiled
+  Boolean get_Transpiled()
+  Boolean op_Equality(SenX.Monitor.Api.MonitorAuditRow, SenX.Monitor.Api.MonitorAuditRow)
+  Boolean op_Inequality(SenX.Monitor.Api.MonitorAuditRow, SenX.Monitor.Api.MonitorAuditRow)
+  Double CallsPerFrame
+  Double OriginalMs
+  Double PostfixMs
+  Double PrefixMs
+  Double get_CallsPerFrame()
+  Double get_OriginalMs()
+  Double get_PostfixMs()
+  Double get_PrefixMs()
+  Int32 GetHashCode()
+  SenX.Monitor.Api.MonitorAuditRow <Clone>$()
+  System.Collections.Generic.IReadOnlyList`1[System.String] Plugins
+  System.Collections.Generic.IReadOnlyList`1[System.String] get_Plugins()
+  System.String Method
+  System.String Problem
+  System.String ToString()
+  System.String get_Method()
+  System.String get_Problem()
+  Void .ctor(System.String, System.Collections.Generic.IReadOnlyList`1[System.String], Double, Double, Double, Double, Boolean, System.String)
+  Void Deconstruct(System.String ByRef, System.Collections.Generic.IReadOnlyList`1[System.String] ByRef, Double ByRef, Double ByRef, Double ByRef, Double ByRef, Boolean ByRef, System.String ByRef)
+  Void set_CallsPerFrame(Double)
+  Void set_Method(System.String)
+  Void set_OriginalMs(Double)
+  Void set_Plugins(System.Collections.Generic.IReadOnlyList`1[System.String])
+  Void set_PostfixMs(Double)
+  Void set_PrefixMs(Double)
+  Void set_Problem(System.String)
+  Void set_Transpiled(Boolean)
+SenX.Monitor.Api.MonitorChart
+  Int32 value__
+  SenX.Monitor.Api.MonitorChart Allocation
+  SenX.Monitor.Api.MonitorChart AvailableTime
+  SenX.Monitor.Api.MonitorChart BlockTypeCosts
+  SenX.Monitor.Api.MonitorChart Blocks
+  SenX.Monitor.Api.MonitorChart CallbackCosts
+  SenX.Monitor.Api.MonitorChart FrameParts
+  SenX.Monitor.Api.MonitorChart FrameTime
+  SenX.Monitor.Api.MonitorChart GameLogicCosts
+  SenX.Monitor.Api.MonitorChart GameLoop
+  SenX.Monitor.Api.MonitorChart GarbageCollections
+  SenX.Monitor.Api.MonitorChart GridCosts
+  SenX.Monitor.Api.MonitorChart Memory
+  SenX.Monitor.Api.MonitorChart ModCosts
+  SenX.Monitor.Api.MonitorChart Objects
+  SenX.Monitor.Api.MonitorChart OwnerCosts
+  SenX.Monitor.Api.MonitorChart Pcu
+  SenX.Monitor.Api.MonitorChart Players
+  SenX.Monitor.Api.MonitorChart RpcRate
+  SenX.Monitor.Api.MonitorChart ScriptCosts
+  SenX.Monitor.Api.MonitorChart ServerPing
+  SenX.Monitor.Api.MonitorChart SessionCosts
+  SenX.Monitor.Api.MonitorChart SimSpeed
+  SenX.Monitor.Api.MonitorChart Traffic
+  SenX.Monitor.Api.MonitorChart TrafficKinds
+SenX.Monitor.Api.MonitorComparedList
+  Boolean Equals(SenX.Monitor.Api.MonitorComparedList)
+  Boolean Equals(System.Object)
+  Boolean op_Equality(SenX.Monitor.Api.MonitorComparedList, SenX.Monitor.Api.MonitorComparedList)
+  Boolean op_Inequality(SenX.Monitor.Api.MonitorComparedList, SenX.Monitor.Api.MonitorComparedList)
+  Int32 GetHashCode()
+  SenX.Monitor.Api.MonitorComparedList <Clone>$()
+  SenX.Monitor.Api.MonitorList List
+  SenX.Monitor.Api.MonitorList get_List()
+  System.Collections.Generic.IReadOnlyList`1[SenX.Monitor.Api.MonitorComparedRow] Rows
+  System.Collections.Generic.IReadOnlyList`1[SenX.Monitor.Api.MonitorComparedRow] get_Rows()
+  System.String ToString()
+  Void .ctor(SenX.Monitor.Api.MonitorList, System.Collections.Generic.IReadOnlyList`1[SenX.Monitor.Api.MonitorComparedRow])
+  Void Deconstruct(SenX.Monitor.Api.MonitorList ByRef, System.Collections.Generic.IReadOnlyList`1[SenX.Monitor.Api.MonitorComparedRow] ByRef)
+  Void set_List(SenX.Monitor.Api.MonitorList)
+  Void set_Rows(System.Collections.Generic.IReadOnlyList`1[SenX.Monitor.Api.MonitorComparedRow])
+SenX.Monitor.Api.MonitorComparedRow
+  Boolean Equals(SenX.Monitor.Api.MonitorComparedRow)
+  Boolean Equals(System.Object)
+  Boolean op_Equality(SenX.Monitor.Api.MonitorComparedRow, SenX.Monitor.Api.MonitorComparedRow)
+  Boolean op_Inequality(SenX.Monitor.Api.MonitorComparedRow, SenX.Monitor.Api.MonitorComparedRow)
+  Int32 GetHashCode()
+  SenX.Monitor.Api.MonitorComparedRow <Clone>$()
+  System.Nullable`1[System.Double] AfterMs
+  System.Nullable`1[System.Double] BeforeMs
+  System.Nullable`1[System.Double] ChangeMs
+  System.Nullable`1[System.Double] get_AfterMs()
+  System.Nullable`1[System.Double] get_BeforeMs()
+  System.Nullable`1[System.Double] get_ChangeMs()
+  System.Nullable`1[System.Int64] Id
+  System.Nullable`1[System.Int64] get_Id()
+  System.String Name
+  System.String ToString()
+  System.String get_Name()
+  Void .ctor(System.String, System.Nullable`1[System.Int64], System.Nullable`1[System.Double], System.Nullable`1[System.Double])
+  Void Deconstruct(System.String ByRef, System.Nullable`1[System.Int64] ByRef, System.Nullable`1[System.Double] ByRef, System.Nullable`1[System.Double] ByRef)
+  Void set_AfterMs(System.Nullable`1[System.Double])
+  Void set_BeforeMs(System.Nullable`1[System.Double])
+  Void set_Id(System.Nullable`1[System.Int64])
+  Void set_Name(System.String)
+SenX.Monitor.Api.MonitorComparison
+  Boolean Equals(SenX.Monitor.Api.MonitorComparison)
+  Boolean Equals(System.Object)
+  Boolean op_Equality(SenX.Monitor.Api.MonitorComparison, SenX.Monitor.Api.MonitorComparison)
+  Boolean op_Inequality(SenX.Monitor.Api.MonitorComparison, SenX.Monitor.Api.MonitorComparison)
+  Int32 GetHashCode()
+  SenX.Monitor.Api.MonitorComparison <Clone>$()
+  SenX.Monitor.Api.MonitorFrame After
+  SenX.Monitor.Api.MonitorFrame Before
+  SenX.Monitor.Api.MonitorFrame get_After()
+  SenX.Monitor.Api.MonitorFrame get_Before()
+  System.Collections.Generic.IReadOnlyList`1[SenX.Monitor.Api.MonitorComparedList] Lists
+  System.Collections.Generic.IReadOnlyList`1[SenX.Monitor.Api.MonitorComparedList] get_Lists()
+  System.String ToString()
+  Void .ctor(SenX.Monitor.Api.MonitorFrame, SenX.Monitor.Api.MonitorFrame, System.Collections.Generic.IReadOnlyList`1[SenX.Monitor.Api.MonitorComparedList])
+  Void Deconstruct(SenX.Monitor.Api.MonitorFrame ByRef, SenX.Monitor.Api.MonitorFrame ByRef, System.Collections.Generic.IReadOnlyList`1[SenX.Monitor.Api.MonitorComparedList] ByRef)
+  Void set_After(SenX.Monitor.Api.MonitorFrame)
+  Void set_Before(SenX.Monitor.Api.MonitorFrame)
+  Void set_Lists(System.Collections.Generic.IReadOnlyList`1[SenX.Monitor.Api.MonitorComparedList])
+SenX.Monitor.Api.MonitorCostPoint
+  Boolean Equals(SenX.Monitor.Api.MonitorCostPoint)
+  Boolean Equals(System.Object)
+  Boolean op_Equality(SenX.Monitor.Api.MonitorCostPoint, SenX.Monitor.Api.MonitorCostPoint)
+  Boolean op_Inequality(SenX.Monitor.Api.MonitorCostPoint, SenX.Monitor.Api.MonitorCostPoint)
+  Double BytesPerSecond
+  Double CallsPerFrame
+  Double MainMs
+  Double PeakMs
+  Double WorkerMs
+  Double get_BytesPerSecond()
+  Double get_CallsPerFrame()
+  Double get_MainMs()
+  Double get_PeakMs()
+  Double get_WorkerMs()
+  Int32 GetHashCode()
+  SenX.Monitor.Api.MonitorCostPoint <Clone>$()
+  SenX.Monitor.Api.MonitorThread Thread
+  SenX.Monitor.Api.MonitorThread get_Thread()
+  System.DateTime Time
+  System.DateTime get_Time()
+  System.String ToString()
+  Void .ctor(System.DateTime, Double, Double, Double, Double)
+  Void Deconstruct(System.DateTime ByRef, Double ByRef, Double ByRef, Double ByRef, Double ByRef)
+  Void set_BytesPerSecond(Double)
+  Void set_CallsPerFrame(Double)
+  Void set_MainMs(Double)
+  Void set_PeakMs(Double)
+  Void set_Time(System.DateTime)
+  Void set_WorkerMs(Double)
+SenX.Monitor.Api.MonitorEvent
+  Boolean Equals(SenX.Monitor.Api.MonitorEvent)
+  Boolean Equals(System.Object)
+  Boolean op_Equality(SenX.Monitor.Api.MonitorEvent, SenX.Monitor.Api.MonitorEvent)
+  Boolean op_Inequality(SenX.Monitor.Api.MonitorEvent, SenX.Monitor.Api.MonitorEvent)
+  Int32 GetHashCode()
+  SenX.Monitor.Api.MonitorEvent <Clone>$()
+  SenX.Monitor.Api.MonitorEventKind Kind
+  SenX.Monitor.Api.MonitorEventKind get_Kind()
+  System.DateTime Time
+  System.DateTime get_Time()
+  System.String Server
+  System.String Text
+  System.String ToString()
+  System.String get_Server()
+  System.String get_Text()
+  Void .ctor(System.String, System.DateTime, SenX.Monitor.Api.MonitorEventKind, System.String)
+  Void Deconstruct(System.String ByRef, System.DateTime ByRef, SenX.Monitor.Api.MonitorEventKind ByRef, System.String ByRef)
+  Void set_Kind(SenX.Monitor.Api.MonitorEventKind)
+  Void set_Server(System.String)
+  Void set_Text(System.String)
+  Void set_Time(System.DateTime)
+SenX.Monitor.Api.MonitorEventKind
+  Int32 value__
+  SenX.Monitor.Api.MonitorEventKind Change
+  SenX.Monitor.Api.MonitorEventKind JoinHitch
+  SenX.Monitor.Api.MonitorEventKind Lag
+  SenX.Monitor.Api.MonitorEventKind Measuring
+  SenX.Monitor.Api.MonitorEventKind Restart
+  SenX.Monitor.Api.MonitorEventKind Save
+  SenX.Monitor.Api.MonitorEventKind ThreadJump
+SenX.Monitor.Api.MonitorFactionNow
+  Boolean Equals(SenX.Monitor.Api.MonitorFactionNow)
+  Boolean Equals(System.Object)
+  Boolean op_Equality(SenX.Monitor.Api.MonitorFactionNow, SenX.Monitor.Api.MonitorFactionNow)
+  Boolean op_Inequality(SenX.Monitor.Api.MonitorFactionNow, SenX.Monitor.Api.MonitorFactionNow)
+  Int32 GetHashCode()
+  Int64 Blocks
+  Int64 Grids
+  Int64 Id
+  Int64 OnlineMembers
+  Int64 Pcu
+  Int64 get_Blocks()
+  Int64 get_Grids()
+  Int64 get_Id()
+  Int64 get_OnlineMembers()
+  Int64 get_Pcu()
+  SenX.Monitor.Api.MonitorFactionNow <Clone>$()
+  System.String Name
+  System.String ToString()
+  System.String get_Name()
+  Void .ctor(System.String, Int64, Int64, Int64, Int64, Int64)
+  Void Deconstruct(System.String ByRef, Int64 ByRef, Int64 ByRef, Int64 ByRef, Int64 ByRef, Int64 ByRef)
+  Void set_Blocks(Int64)
+  Void set_Grids(Int64)
+  Void set_Id(Int64)
+  Void set_Name(System.String)
+  Void set_OnlineMembers(Int64)
+  Void set_Pcu(Int64)
+SenX.Monitor.Api.MonitorFrame
+  Boolean Equals(SenX.Monitor.Api.MonitorFrame)
+  Boolean Equals(System.Object)
+  Boolean op_Equality(SenX.Monitor.Api.MonitorFrame, SenX.Monitor.Api.MonitorFrame)
+  Boolean op_Inequality(SenX.Monitor.Api.MonitorFrame, SenX.Monitor.Api.MonitorFrame)
+  Double AvailableMs
+  Double AverageFrameMs
+  Double SimSpeed
+  Double WorstFrameMs
+  Double get_AvailableMs()
+  Double get_AverageFrameMs()
+  Double get_SimSpeed()
+  Double get_WorstFrameMs()
+  Int32 GetHashCode()
+  SenX.Monitor.Api.MonitorFrame <Clone>$()
+  System.String ToString()
+  Void .ctor(Double, Double, Double, Double)
+  Void Deconstruct(Double ByRef, Double ByRef, Double ByRef, Double ByRef)
+  Void set_AvailableMs(Double)
+  Void set_AverageFrameMs(Double)
+  Void set_SimSpeed(Double)
+  Void set_WorstFrameMs(Double)
+SenX.Monitor.Api.MonitorHistory
+  Boolean Equals(SenX.Monitor.Api.MonitorHistory)
+  Boolean Equals(System.Object)
+  Boolean op_Equality(SenX.Monitor.Api.MonitorHistory, SenX.Monitor.Api.MonitorHistory)
+  Boolean op_Inequality(SenX.Monitor.Api.MonitorHistory, SenX.Monitor.Api.MonitorHistory)
+  Int32 GetHashCode()
+  SenX.Monitor.Api.MonitorFrame Frame
+  SenX.Monitor.Api.MonitorFrame get_Frame()
+  SenX.Monitor.Api.MonitorHistory <Clone>$()
+  SenX.Monitor.Api.MonitorRange Range
+  SenX.Monitor.Api.MonitorRange get_Range()
+  System.Collections.Generic.IReadOnlyList`1[SenX.Monitor.Api.MonitorEvent] Events
+  System.Collections.Generic.IReadOnlyList`1[SenX.Monitor.Api.MonitorEvent] get_Events()
+  System.Collections.Generic.IReadOnlyList`1[SenX.Monitor.Api.MonitorPoint] Timeline
+  System.Collections.Generic.IReadOnlyList`1[SenX.Monitor.Api.MonitorPoint] get_Timeline()
+  System.Collections.Generic.IReadOnlyList`1[SenX.Monitor.Api.MonitorWorldPoint] World
+  System.Collections.Generic.IReadOnlyList`1[SenX.Monitor.Api.MonitorWorldPoint] get_World()
+  System.String ToString()
+  Void .ctor(SenX.Monitor.Api.MonitorRange, SenX.Monitor.Api.MonitorFrame, System.Collections.Generic.IReadOnlyList`1[SenX.Monitor.Api.MonitorPoint], System.Collections.Generic.IReadOnlyList`1[SenX.Monitor.Api.MonitorWorldPoint], System.Collections.Generic.IReadOnlyList`1[SenX.Monitor.Api.MonitorEvent])
+  Void Deconstruct(SenX.Monitor.Api.MonitorRange ByRef, SenX.Monitor.Api.MonitorFrame ByRef, System.Collections.Generic.IReadOnlyList`1[SenX.Monitor.Api.MonitorPoint] ByRef, System.Collections.Generic.IReadOnlyList`1[SenX.Monitor.Api.MonitorWorldPoint] ByRef, System.Collections.Generic.IReadOnlyList`1[SenX.Monitor.Api.MonitorEvent] ByRef)
+  Void set_Events(System.Collections.Generic.IReadOnlyList`1[SenX.Monitor.Api.MonitorEvent])
+  Void set_Frame(SenX.Monitor.Api.MonitorFrame)
+  Void set_Range(SenX.Monitor.Api.MonitorRange)
+  Void set_Timeline(System.Collections.Generic.IReadOnlyList`1[SenX.Monitor.Api.MonitorPoint])
+  Void set_World(System.Collections.Generic.IReadOnlyList`1[SenX.Monitor.Api.MonitorWorldPoint])
+SenX.Monitor.Api.MonitorIncident
+  Boolean Equals(SenX.Monitor.Api.MonitorIncident)
+  Boolean Equals(System.Object)
+  Boolean op_Equality(SenX.Monitor.Api.MonitorIncident, SenX.Monitor.Api.MonitorIncident)
+  Boolean op_Inequality(SenX.Monitor.Api.MonitorIncident, SenX.Monitor.Api.MonitorIncident)
+  Double LowestSim
+  Double get_LowestSim()
+  Int32 GetHashCode()
+  SenX.Monitor.Api.MonitorIncident <Clone>$()
+  System.DateTime Opened
+  System.DateTime get_Opened()
+  System.Nullable`1[System.DateTime] Closed
+  System.Nullable`1[System.DateTime] get_Closed()
+  System.String Id
+  System.String Reason
+  System.String Server
+  System.String ToString()
+  System.String get_Id()
+  System.String get_Reason()
+  System.String get_Server()
+  Void .ctor(System.String, System.String, System.DateTime, System.Nullable`1[System.DateTime], System.String, Double)
+  Void Deconstruct(System.String ByRef, System.String ByRef, System.DateTime ByRef, System.Nullable`1[System.DateTime] ByRef, System.String ByRef, Double ByRef)
+  Void set_Closed(System.Nullable`1[System.DateTime])
+  Void set_Id(System.String)
+  Void set_LowestSim(Double)
+  Void set_Opened(System.DateTime)
+  Void set_Reason(System.String)
+  Void set_Server(System.String)
+SenX.Monitor.Api.MonitorInside
+  Boolean EndedEarly
+  Boolean Equals(SenX.Monitor.Api.MonitorInside)
+  Boolean Equals(System.Object)
+  Boolean Inflated
+  Boolean get_EndedEarly()
+  Boolean get_Inflated()
+  Boolean op_Equality(SenX.Monitor.Api.MonitorInside, SenX.Monitor.Api.MonitorInside)
+  Boolean op_Inequality(SenX.Monitor.Api.MonitorInside, SenX.Monitor.Api.MonitorInside)
+  Double CallsPerFrame
+  Double MainMs
+  Double PeakMs
+  Double SelfMs
+  Double TimingMsPerFrame
+  Double WorkerMs
+  Double get_CallsPerFrame()
+  Double get_MainMs()
+  Double get_PeakMs()
+  Double get_SelfMs()
+  Double get_TimingMsPerFrame()
+  Double get_WorkerMs()
+  Int32 GetHashCode()
+  Int32 Seconds
+  Int32 get_Seconds()
+  SenX.Monitor.Api.MonitorInside <Clone>$()
+  SenX.Monitor.Api.MonitorReplyState State
+  SenX.Monitor.Api.MonitorReplyState get_State()
+  System.Collections.Generic.IReadOnlyList`1[SenX.Monitor.Api.MonitorInsideRow] Rows
+  System.Collections.Generic.IReadOnlyList`1[SenX.Monitor.Api.MonitorInsideRow] get_Rows()
+  System.String Message
+  System.String Method
+  System.String Owner
+  System.String ToString()
+  System.String get_Message()
+  System.String get_Method()
+  System.String get_Owner()
+  Void .ctor()
+  Void set_CallsPerFrame(Double)
+  Void set_EndedEarly(Boolean)
+  Void set_Inflated(Boolean)
+  Void set_MainMs(Double)
+  Void set_Message(System.String)
+  Void set_Method(System.String)
+  Void set_Owner(System.String)
+  Void set_PeakMs(Double)
+  Void set_Rows(System.Collections.Generic.IReadOnlyList`1[SenX.Monitor.Api.MonitorInsideRow])
+  Void set_Seconds(Int32)
+  Void set_SelfMs(Double)
+  Void set_State(SenX.Monitor.Api.MonitorReplyState)
+  Void set_TimingMsPerFrame(Double)
+  Void set_WorkerMs(Double)
+SenX.Monitor.Api.MonitorInsideRow
+  Boolean Equals(SenX.Monitor.Api.MonitorInsideRow)
+  Boolean Equals(System.Object)
+  Boolean op_Equality(SenX.Monitor.Api.MonitorInsideRow, SenX.Monitor.Api.MonitorInsideRow)
+  Boolean op_Inequality(SenX.Monitor.Api.MonitorInsideRow, SenX.Monitor.Api.MonitorInsideRow)
+  Double CallsPerFrame
+  Double MainMs
+  Double PeakMs
+  Double WorkerMs
+  Double get_CallsPerFrame()
+  Double get_MainMs()
+  Double get_PeakMs()
+  Double get_WorkerMs()
+  Int32 GetHashCode()
+  SenX.Monitor.Api.MonitorInsideRow <Clone>$()
+  SenX.Monitor.Api.MonitorThread Thread
+  SenX.Monitor.Api.MonitorThread get_Thread()
+  System.String Id
+  System.String Name
+  System.String Owner
+  System.String ToString()
+  System.String get_Id()
+  System.String get_Name()
+  System.String get_Owner()
+  Void .ctor(System.String, System.String, System.String, Double, Double, Double, Double)
+  Void Deconstruct(System.String ByRef, System.String ByRef, System.String ByRef, Double ByRef, Double ByRef, Double ByRef, Double ByRef)
+  Void set_CallsPerFrame(Double)
+  Void set_Id(System.String)
+  Void set_MainMs(Double)
+  Void set_Name(System.String)
+  Void set_Owner(System.String)
+  Void set_PeakMs(Double)
+  Void set_WorkerMs(Double)
+SenX.Monitor.Api.MonitorLatest
+  Boolean Equals(SenX.Monitor.Api.MonitorLatest)
+  Boolean Equals(System.Object)
+  Boolean op_Equality(SenX.Monitor.Api.MonitorLatest, SenX.Monitor.Api.MonitorLatest)
+  Boolean op_Inequality(SenX.Monitor.Api.MonitorLatest, SenX.Monitor.Api.MonitorLatest)
+  Double FrameP99
+  Double get_FrameP99()
+  Int32 GetHashCode()
+  SenX.Monitor.Api.MonitorFrame Frame
+  SenX.Monitor.Api.MonitorFrame get_Frame()
+  SenX.Monitor.Api.MonitorLatest <Clone>$()
+  SenX.Monitor.Api.MonitorNetwork Network
+  SenX.Monitor.Api.MonitorNetwork get_Network()
+  SenX.Monitor.Api.MonitorWorldPoint World
+  SenX.Monitor.Api.MonitorWorldPoint get_World()
+  System.Collections.Generic.IReadOnlyDictionary`2[System.String,System.Double] PartsMs
+  System.Collections.Generic.IReadOnlyDictionary`2[System.String,System.Double] get_PartsMs()
+  System.DateTime Time
+  System.DateTime get_Time()
+  System.String ToString()
+  Void .ctor(System.DateTime, SenX.Monitor.Api.MonitorFrame, Double, System.Collections.Generic.IReadOnlyDictionary`2[System.String,System.Double], SenX.Monitor.Api.MonitorWorldPoint)
+  Void Deconstruct(System.DateTime ByRef, SenX.Monitor.Api.MonitorFrame ByRef, Double ByRef, System.Collections.Generic.IReadOnlyDictionary`2[System.String,System.Double] ByRef, SenX.Monitor.Api.MonitorWorldPoint ByRef)
+  Void set_Frame(SenX.Monitor.Api.MonitorFrame)
+  Void set_FrameP99(Double)
+  Void set_Network(SenX.Monitor.Api.MonitorNetwork)
+  Void set_PartsMs(System.Collections.Generic.IReadOnlyDictionary`2[System.String,System.Double])
+  Void set_Time(System.DateTime)
+  Void set_World(SenX.Monitor.Api.MonitorWorldPoint)
+SenX.Monitor.Api.MonitorList
+  Int32 value__
+  SenX.Monitor.Api.MonitorList BlockDefinitions
+  SenX.Monitor.Api.MonitorList BlockTypes
+  SenX.Monitor.Api.MonitorList Callbacks
+  SenX.Monitor.Api.MonitorList Clusters
+  SenX.Monitor.Api.MonitorList EntityTypes
+  SenX.Monitor.Api.MonitorList Factions
+  SenX.Monitor.Api.MonitorList GameLogic
+  SenX.Monitor.Api.MonitorList Grids
+  SenX.Monitor.Api.MonitorList Mods
+  SenX.Monitor.Api.MonitorList Players
+  SenX.Monitor.Api.MonitorList Rpcs
+  SenX.Monitor.Api.MonitorList RpcsSent
+  SenX.Monitor.Api.MonitorList Scripts
+  SenX.Monitor.Api.MonitorList SessionComponents
+SenX.Monitor.Api.MonitorListReply
+  Boolean Available
+  Boolean Equals(SenX.Monitor.Api.MonitorListReply)
+  Boolean Equals(System.Object)
+  Boolean PerFrame
+  Boolean get_Available()
+  Boolean get_PerFrame()
+  Boolean op_Equality(SenX.Monitor.Api.MonitorListReply, SenX.Monitor.Api.MonitorListReply)
+  Boolean op_Inequality(SenX.Monitor.Api.MonitorListReply, SenX.Monitor.Api.MonitorListReply)
+  Int32 GetHashCode()
+  SenX.Monitor.Api.MonitorList List
+  SenX.Monitor.Api.MonitorList get_List()
+  SenX.Monitor.Api.MonitorListReply <Clone>$()
+  System.Collections.Generic.IReadOnlyList`1[SenX.Monitor.Api.MonitorRow] Rows
+  System.Collections.Generic.IReadOnlyList`1[SenX.Monitor.Api.MonitorRow] get_Rows()
+  System.String ToString()
+  System.String Why
+  System.String get_Why()
+  Void .ctor()
+  Void set_Available(Boolean)
+  Void set_List(SenX.Monitor.Api.MonitorList)
+  Void set_PerFrame(Boolean)
+  Void set_Rows(System.Collections.Generic.IReadOnlyList`1[SenX.Monitor.Api.MonitorRow])
+  Void set_Why(System.String)
+SenX.Monitor.Api.MonitorMethod
+  Boolean Equals(SenX.Monitor.Api.MonitorMethod)
+  Boolean Equals(System.Object)
+  Boolean op_Equality(SenX.Monitor.Api.MonitorMethod, SenX.Monitor.Api.MonitorMethod)
+  Boolean op_Inequality(SenX.Monitor.Api.MonitorMethod, SenX.Monitor.Api.MonitorMethod)
+  Int32 GetHashCode()
+  SenX.Monitor.Api.MonitorMethod <Clone>$()
+  System.String Id
+  System.String Name
+  System.String Owner
+  System.String ToString()
+  System.String get_Id()
+  System.String get_Name()
+  System.String get_Owner()
+  Void .ctor(System.String, System.String, System.String)
+  Void Deconstruct(System.String ByRef, System.String ByRef, System.String ByRef)
+  Void set_Id(System.String)
+  Void set_Name(System.String)
+  Void set_Owner(System.String)
+SenX.Monitor.Api.MonitorNetwork
+  Boolean Equals(SenX.Monitor.Api.MonitorNetwork)
+  Boolean Equals(System.Object)
+  Boolean op_Equality(SenX.Monitor.Api.MonitorNetwork, SenX.Monitor.Api.MonitorNetwork)
+  Boolean op_Inequality(SenX.Monitor.Api.MonitorNetwork, SenX.Monitor.Api.MonitorNetwork)
+  Double ReceivedKb
+  Double RpcsFromClients
+  Double SentKb
+  Double get_ReceivedKb()
+  Double get_RpcsFromClients()
+  Double get_SentKb()
+  Int32 GetHashCode()
+  SenX.Monitor.Api.MonitorNetwork <Clone>$()
+  System.String ToString()
+  Void .ctor(Double, Double, Double)
+  Void Deconstruct(Double ByRef, Double ByRef, Double ByRef)
+  Void set_ReceivedKb(Double)
+  Void set_RpcsFromClients(Double)
+  Void set_SentKb(Double)
+SenX.Monitor.Api.MonitorPatchEntry
+  Boolean Equals(SenX.Monitor.Api.MonitorPatchEntry)
+  Boolean Equals(System.Object)
+  Boolean op_Equality(SenX.Monitor.Api.MonitorPatchEntry, SenX.Monitor.Api.MonitorPatchEntry)
+  Boolean op_Inequality(SenX.Monitor.Api.MonitorPatchEntry, SenX.Monitor.Api.MonitorPatchEntry)
+  Int32 GetHashCode()
+  Int32 Priority
+  Int32 get_Priority()
+  SenX.Monitor.Api.MonitorPatchEntry <Clone>$()
+  System.String Kind
+  System.String Patch
+  System.String Plugin
+  System.String ToString()
+  System.String get_Kind()
+  System.String get_Patch()
+  System.String get_Plugin()
+  Void .ctor(System.String, System.String, System.String, Int32)
+  Void Deconstruct(System.String ByRef, System.String ByRef, System.String ByRef, Int32 ByRef)
+  Void set_Kind(System.String)
+  Void set_Patch(System.String)
+  Void set_Plugin(System.String)
+  Void set_Priority(Int32)
+SenX.Monitor.Api.MonitorPatchedMethod
+  Boolean Equals(SenX.Monitor.Api.MonitorPatchedMethod)
+  Boolean Equals(System.Object)
+  Boolean op_Equality(SenX.Monitor.Api.MonitorPatchedMethod, SenX.Monitor.Api.MonitorPatchedMethod)
+  Boolean op_Inequality(SenX.Monitor.Api.MonitorPatchedMethod, SenX.Monitor.Api.MonitorPatchedMethod)
+  Int32 GetHashCode()
+  SenX.Monitor.Api.MonitorPatchedMethod <Clone>$()
+  System.Collections.Generic.IReadOnlyList`1[SenX.Monitor.Api.MonitorPatchEntry] Patches
+  System.Collections.Generic.IReadOnlyList`1[SenX.Monitor.Api.MonitorPatchEntry] get_Patches()
+  System.String Method
+  System.String ToString()
+  System.String get_Method()
+  Void .ctor(System.String, System.Collections.Generic.IReadOnlyList`1[SenX.Monitor.Api.MonitorPatchEntry])
+  Void Deconstruct(System.String ByRef, System.Collections.Generic.IReadOnlyList`1[SenX.Monitor.Api.MonitorPatchEntry] ByRef)
+  Void set_Method(System.String)
+  Void set_Patches(System.Collections.Generic.IReadOnlyList`1[SenX.Monitor.Api.MonitorPatchEntry])
+SenX.Monitor.Api.MonitorPlayerNow
+  Boolean Equals(SenX.Monitor.Api.MonitorPlayerNow)
+  Boolean Equals(System.Object)
+  Boolean op_Equality(SenX.Monitor.Api.MonitorPlayerNow, SenX.Monitor.Api.MonitorPlayerNow)
+  Boolean op_Inequality(SenX.Monitor.Api.MonitorPlayerNow, SenX.Monitor.Api.MonitorPlayerNow)
+  Double PingMs
+  Double QueuedKb
+  Double ReceivedKbPerSecond
+  Double RpcsPerSecond
+  Double SentKbPerSecond
+  Double get_PingMs()
+  Double get_QueuedKb()
+  Double get_ReceivedKbPerSecond()
+  Double get_RpcsPerSecond()
+  Double get_SentKbPerSecond()
+  Int32 GetHashCode()
+  Int64 FailedSends
+  Int64 IdentityId
+  Int64 get_FailedSends()
+  Int64 get_IdentityId()
+  SenX.Monitor.Api.MonitorPlayerNow <Clone>$()
+  System.String Faction
+  System.String Name
+  System.String ToString()
+  System.String get_Faction()
+  System.String get_Name()
+  Void .ctor(System.String, Int64, System.String, Double, Double, Double, Double, Double, Int64)
+  Void Deconstruct(System.String ByRef, Int64 ByRef, System.String ByRef, Double ByRef, Double ByRef, Double ByRef, Double ByRef, Double ByRef, Int64 ByRef)
+  Void set_Faction(System.String)
+  Void set_FailedSends(Int64)
+  Void set_IdentityId(Int64)
+  Void set_Name(System.String)
+  Void set_PingMs(Double)
+  Void set_QueuedKb(Double)
+  Void set_ReceivedKbPerSecond(Double)
+  Void set_RpcsPerSecond(Double)
+  Void set_SentKbPerSecond(Double)
+SenX.Monitor.Api.MonitorPoint
+  Boolean Equals(SenX.Monitor.Api.MonitorPoint)
+  Boolean Equals(System.Object)
+  Boolean op_Equality(SenX.Monitor.Api.MonitorPoint, SenX.Monitor.Api.MonitorPoint)
+  Boolean op_Inequality(SenX.Monitor.Api.MonitorPoint, SenX.Monitor.Api.MonitorPoint)
+  Double AvailableMs
+  Double FrameMax
+  Double FrameP50
+  Double FrameP95
+  Double FrameP99
+  Double ReceivedKb
+  Double SentKb
+  Double SimSpeed
+  Double get_AvailableMs()
+  Double get_FrameMax()
+  Double get_FrameP50()
+  Double get_FrameP95()
+  Double get_FrameP99()
+  Double get_ReceivedKb()
+  Double get_SentKb()
+  Double get_SimSpeed()
+  Int32 GetHashCode()
+  SenX.Monitor.Api.MonitorPoint <Clone>$()
+  System.DateTime Time
+  System.DateTime get_Time()
+  System.String ToString()
+  Void .ctor(System.DateTime, Double, Double, Double, Double, Double, Double)
+  Void Deconstruct(System.DateTime ByRef, Double ByRef, Double ByRef, Double ByRef, Double ByRef, Double ByRef, Double ByRef)
+  Void set_AvailableMs(Double)
+  Void set_FrameMax(Double)
+  Void set_FrameP50(Double)
+  Void set_FrameP95(Double)
+  Void set_FrameP99(Double)
+  Void set_ReceivedKb(Double)
+  Void set_SentKb(Double)
+  Void set_SimSpeed(Double)
+  Void set_Time(System.DateTime)
+SenX.Monitor.Api.MonitorRange
+  Boolean Equals(SenX.Monitor.Api.MonitorRange)
+  Boolean Equals(System.Object)
+  Boolean op_Equality(SenX.Monitor.Api.MonitorRange, SenX.Monitor.Api.MonitorRange)
+  Boolean op_Inequality(SenX.Monitor.Api.MonitorRange, SenX.Monitor.Api.MonitorRange)
+  Int32 GetHashCode()
+  SenX.Monitor.Api.MonitorRange <Clone>$()
+  System.DateTime From
+  System.DateTime To
+  System.DateTime get_From()
+  System.DateTime get_To()
+  System.String ToString()
+  Void .ctor(System.DateTime, System.DateTime)
+  Void Deconstruct(System.DateTime ByRef, System.DateTime ByRef)
+  Void set_From(System.DateTime)
+  Void set_To(System.DateTime)
+SenX.Monitor.Api.MonitorReply
+  Boolean Equals(SenX.Monitor.Api.MonitorReply)
+  Boolean Equals(System.Object)
+  Boolean op_Equality(SenX.Monitor.Api.MonitorReply, SenX.Monitor.Api.MonitorReply)
+  Boolean op_Inequality(SenX.Monitor.Api.MonitorReply, SenX.Monitor.Api.MonitorReply)
+  Int32 GetHashCode()
+  SenX.Monitor.Api.MonitorAccuracy Accuracy
+  SenX.Monitor.Api.MonitorAccuracy get_Accuracy()
+  SenX.Monitor.Api.MonitorFrame Frame
+  SenX.Monitor.Api.MonitorFrame get_Frame()
+  SenX.Monitor.Api.MonitorReply <Clone>$()
+  SenX.Monitor.Api.MonitorReplyState State
+  SenX.Monitor.Api.MonitorReplyState get_State()
+  SenX.Monitor.Api.MonitorRunDetails Run
+  SenX.Monitor.Api.MonitorRunDetails get_Run()
+  SenX.Monitor.Api.MonitorSource Source
+  SenX.Monitor.Api.MonitorSource get_Source()
+  System.Collections.Generic.IReadOnlyDictionary`2[System.String,System.Double] PartsMs
+  System.Collections.Generic.IReadOnlyDictionary`2[System.String,System.Double] get_PartsMs()
+  System.Collections.Generic.IReadOnlyList`1[SenX.Monitor.Api.MonitorEvent] Events
+  System.Collections.Generic.IReadOnlyList`1[SenX.Monitor.Api.MonitorEvent] get_Events()
+  System.Collections.Generic.IReadOnlyList`1[SenX.Monitor.Api.MonitorListReply] Lists
+  System.Collections.Generic.IReadOnlyList`1[SenX.Monitor.Api.MonitorListReply] get_Lists()
+  System.Collections.Generic.IReadOnlyList`1[SenX.Monitor.Api.MonitorPoint] Timeline
+  System.Collections.Generic.IReadOnlyList`1[SenX.Monitor.Api.MonitorPoint] get_Timeline()
+  System.Collections.Generic.IReadOnlyList`1[SenX.Monitor.Api.MonitorSlowCall] SlowCalls
+  System.Collections.Generic.IReadOnlyList`1[SenX.Monitor.Api.MonitorSlowCall] get_SlowCalls()
+  System.Collections.Generic.IReadOnlyList`1[SenX.Monitor.Api.MonitorWorldPoint] World
+  System.Collections.Generic.IReadOnlyList`1[SenX.Monitor.Api.MonitorWorldPoint] get_World()
+  System.DateTime From
+  System.DateTime To
+  System.DateTime get_From()
+  System.DateTime get_To()
+  System.Nullable`1[System.TimeSpan] RetryAfter
+  System.Nullable`1[System.TimeSpan] get_RetryAfter()
+  System.String Message
+  System.String Server
+  System.String ToString()
+  System.String get_Message()
+  System.String get_Server()
+  Void .ctor()
+  Void set_Accuracy(SenX.Monitor.Api.MonitorAccuracy)
+  Void set_Events(System.Collections.Generic.IReadOnlyList`1[SenX.Monitor.Api.MonitorEvent])
+  Void set_Frame(SenX.Monitor.Api.MonitorFrame)
+  Void set_From(System.DateTime)
+  Void set_Lists(System.Collections.Generic.IReadOnlyList`1[SenX.Monitor.Api.MonitorListReply])
+  Void set_Message(System.String)
+  Void set_PartsMs(System.Collections.Generic.IReadOnlyDictionary`2[System.String,System.Double])
+  Void set_RetryAfter(System.Nullable`1[System.TimeSpan])
+  Void set_Run(SenX.Monitor.Api.MonitorRunDetails)
+  Void set_Server(System.String)
+  Void set_SlowCalls(System.Collections.Generic.IReadOnlyList`1[SenX.Monitor.Api.MonitorSlowCall])
+  Void set_Source(SenX.Monitor.Api.MonitorSource)
+  Void set_State(SenX.Monitor.Api.MonitorReplyState)
+  Void set_Timeline(System.Collections.Generic.IReadOnlyList`1[SenX.Monitor.Api.MonitorPoint])
+  Void set_To(System.DateTime)
+  Void set_World(System.Collections.Generic.IReadOnlyList`1[SenX.Monitor.Api.MonitorWorldPoint])
+SenX.Monitor.Api.MonitorReplyState
+  Int32 value__
+  SenX.Monitor.Api.MonitorReplyState Failed
+  SenX.Monitor.Api.MonitorReplyState Finished
+  SenX.Monitor.Api.MonitorReplyState Refused
+SenX.Monitor.Api.MonitorRequest
+  Boolean Equals(SenX.Monitor.Api.MonitorRequest)
+  Boolean Equals(System.Object)
+  Boolean op_Equality(SenX.Monitor.Api.MonitorRequest, SenX.Monitor.Api.MonitorRequest)
+  Boolean op_Inequality(SenX.Monitor.Api.MonitorRequest, SenX.Monitor.Api.MonitorRequest)
+  Int32 GetHashCode()
+  Int32 Seconds
+  Int32 get_Seconds()
+  Int64 GridId
+  Int64 get_GridId()
+  SenX.Monitor.Api.MonitorRequest <Clone>$()
+  SenX.Monitor.Api.MonitorSource Source
+  SenX.Monitor.Api.MonitorSource get_Source()
+  System.Collections.Generic.IReadOnlyCollection`1[SenX.Monitor.Api.MonitorList] Lists
+  System.Collections.Generic.IReadOnlyCollection`1[SenX.Monitor.Api.MonitorList] get_Lists()
+  System.DateTime From
+  System.DateTime To
+  System.DateTime get_From()
+  System.DateTime get_To()
+  System.String BlockType
+  System.String Faction
+  System.String Player
+  System.String RequestedBy
+  System.String RunId
+  System.String Server
+  System.String ToString()
+  System.String get_BlockType()
+  System.String get_Faction()
+  System.String get_Player()
+  System.String get_RequestedBy()
+  System.String get_RunId()
+  System.String get_Server()
+  Void .ctor()
+  Void set_BlockType(System.String)
+  Void set_Faction(System.String)
+  Void set_From(System.DateTime)
+  Void set_GridId(Int64)
+  Void set_Lists(System.Collections.Generic.IReadOnlyCollection`1[SenX.Monitor.Api.MonitorList])
+  Void set_Player(System.String)
+  Void set_RequestedBy(System.String)
+  Void set_RunId(System.String)
+  Void set_Seconds(Int32)
+  Void set_Server(System.String)
+  Void set_Source(SenX.Monitor.Api.MonitorSource)
+  Void set_To(System.DateTime)
+SenX.Monitor.Api.MonitorRow
+  Boolean Equals(SenX.Monitor.Api.MonitorRow)
+  Boolean Equals(System.Object)
+  Boolean op_Equality(SenX.Monitor.Api.MonitorRow, SenX.Monitor.Api.MonitorRow)
+  Boolean op_Inequality(SenX.Monitor.Api.MonitorRow, SenX.Monitor.Api.MonitorRow)
+  Double BytesPerSecond
+  Double CallsPerFrame
+  Double MainMs
+  Double PeakMs
+  Double SeenShare
+  Double SizeKm
+  Double WorkerMs
+  Double get_BytesPerSecond()
+  Double get_CallsPerFrame()
+  Double get_MainMs()
+  Double get_PeakMs()
+  Double get_SeenShare()
+  Double get_SizeKm()
+  Double get_WorkerMs()
+  Int32 GetHashCode()
+  Int64 Blocks
+  Int64 Grids
+  Int64 get_Blocks()
+  Int64 get_Grids()
+  SenX.Monitor.Api.MonitorRow <Clone>$()
+  SenX.Monitor.Api.MonitorThread Thread
+  SenX.Monitor.Api.MonitorThread get_Thread()
+  System.Collections.Generic.IReadOnlyList`1[SenX.Monitor.Api.MonitorRow] Members
+  System.Collections.Generic.IReadOnlyList`1[SenX.Monitor.Api.MonitorRow] get_Members()
+  System.Nullable`1[System.Int64] Id
+  System.Nullable`1[System.Int64] get_Id()
+  System.String Name
+  System.String ToString()
+  System.String get_Name()
+  Void .ctor(System.String, System.Nullable`1[System.Int64], Double, Double, Double, Double, Double)
+  Void Deconstruct(System.String ByRef, System.Nullable`1[System.Int64] ByRef, Double ByRef, Double ByRef, Double ByRef, Double ByRef, Double ByRef)
+  Void set_Blocks(Int64)
+  Void set_BytesPerSecond(Double)
+  Void set_CallsPerFrame(Double)
+  Void set_Grids(Int64)
+  Void set_Id(System.Nullable`1[System.Int64])
+  Void set_MainMs(Double)
+  Void set_Members(System.Collections.Generic.IReadOnlyList`1[SenX.Monitor.Api.MonitorRow])
+  Void set_Name(System.String)
+  Void set_PeakMs(Double)
+  Void set_SeenShare(Double)
+  Void set_SizeKm(Double)
+  Void set_Thread(SenX.Monitor.Api.MonitorThread)
+  Void set_WorkerMs(Double)
+SenX.Monitor.Api.MonitorRunDetails
+  Boolean EndedEarly
+  Boolean Equals(SenX.Monitor.Api.MonitorRunDetails)
+  Boolean Equals(System.Object)
+  Boolean get_EndedEarly()
+  Boolean op_Equality(SenX.Monitor.Api.MonitorRunDetails, SenX.Monitor.Api.MonitorRunDetails)
+  Boolean op_Inequality(SenX.Monitor.Api.MonitorRunDetails, SenX.Monitor.Api.MonitorRunDetails)
+  Double Coverage
+  Double MainWaitMs
+  Double ParallelWorkerMs
+  Double Seconds
+  Double TimingMsPerFrame
+  Double get_Coverage()
+  Double get_MainWaitMs()
+  Double get_ParallelWorkerMs()
+  Double get_Seconds()
+  Double get_TimingMsPerFrame()
+  Int32 GetHashCode()
+  Int64 Frames
+  Int64 get_Frames()
+  SenX.Monitor.Api.MonitorRunDetails <Clone>$()
+  System.String LostSites
+  System.String RequestedBy
+  System.String RunId
+  System.String ToString()
+  System.String get_LostSites()
+  System.String get_RequestedBy()
+  System.String get_RunId()
+  Void .ctor(System.String, Double, Int64, Double, Double, Boolean, System.String)
+  Void Deconstruct(System.String ByRef, Double ByRef, Int64 ByRef, Double ByRef, Double ByRef, Boolean ByRef, System.String ByRef)
+  Void set_Coverage(Double)
+  Void set_EndedEarly(Boolean)
+  Void set_Frames(Int64)
+  Void set_LostSites(System.String)
+  Void set_MainWaitMs(Double)
+  Void set_ParallelWorkerMs(Double)
+  Void set_RequestedBy(System.String)
+  Void set_RunId(System.String)
+  Void set_Seconds(Double)
+  Void set_TimingMsPerFrame(Double)
+SenX.Monitor.Api.MonitorRunFinished
+  Boolean Equals(SenX.Monitor.Api.MonitorRunFinished)
+  Boolean Equals(System.Object)
+  Boolean op_Equality(SenX.Monitor.Api.MonitorRunFinished, SenX.Monitor.Api.MonitorRunFinished)
+  Boolean op_Inequality(SenX.Monitor.Api.MonitorRunFinished, SenX.Monitor.Api.MonitorRunFinished)
+  Int32 GetHashCode()
+  SenX.Monitor.Api.MonitorRunFinished <Clone>$()
+  System.String RunId
+  System.String Server
+  System.String ToString()
+  System.String get_RunId()
+  System.String get_Server()
+  Void .ctor(System.String, System.String)
+  Void Deconstruct(System.String ByRef, System.String ByRef)
+  Void set_RunId(System.String)
+  Void set_Server(System.String)
+SenX.Monitor.Api.MonitorRunOptions
+  Boolean Equals(SenX.Monitor.Api.MonitorRunOptions)
+  Boolean Equals(System.Object)
+  Boolean op_Equality(SenX.Monitor.Api.MonitorRunOptions, SenX.Monitor.Api.MonitorRunOptions)
+  Boolean op_Inequality(SenX.Monitor.Api.MonitorRunOptions, SenX.Monitor.Api.MonitorRunOptions)
+  Int32 GetHashCode()
+  Int32 Seconds
+  Int32 get_Seconds()
+  Int64 GridId
+  Int64 get_GridId()
+  SenX.Monitor.Api.MonitorRunOptions <Clone>$()
+  System.Collections.Generic.IReadOnlyCollection`1[SenX.Monitor.Api.MonitorList] Lists
+  System.Collections.Generic.IReadOnlyCollection`1[SenX.Monitor.Api.MonitorList] get_Lists()
+  System.String BlockType
+  System.String Faction
+  System.String Player
+  System.String RequestedBy
+  System.String ToString()
+  System.String get_BlockType()
+  System.String get_Faction()
+  System.String get_Player()
+  System.String get_RequestedBy()
+  Void .ctor()
+  Void set_BlockType(System.String)
+  Void set_Faction(System.String)
+  Void set_GridId(Int64)
+  Void set_Lists(System.Collections.Generic.IReadOnlyCollection`1[SenX.Monitor.Api.MonitorList])
+  Void set_Player(System.String)
+  Void set_RequestedBy(System.String)
+  Void set_Seconds(Int32)
+SenX.Monitor.Api.MonitorRunProgress
+  Boolean Equals(SenX.Monitor.Api.MonitorRunProgress)
+  Boolean Equals(System.Object)
+  Boolean op_Equality(SenX.Monitor.Api.MonitorRunProgress, SenX.Monitor.Api.MonitorRunProgress)
+  Boolean op_Inequality(SenX.Monitor.Api.MonitorRunProgress, SenX.Monitor.Api.MonitorRunProgress)
+  Int32 GetHashCode()
+  Int32 SecondsLeft
+  Int32 get_SecondsLeft()
+  SenX.Monitor.Api.MonitorRunProgress <Clone>$()
+  System.String RequestedBy
+  System.String ToString()
+  System.String get_RequestedBy()
+  Void .ctor(System.String, Int32)
+  Void Deconstruct(System.String ByRef, Int32 ByRef)
+  Void set_RequestedBy(System.String)
+  Void set_SecondsLeft(Int32)
+SenX.Monitor.Api.MonitorSample
+  Boolean Equals(SenX.Monitor.Api.MonitorSample)
+  Boolean Equals(System.Object)
+  Boolean op_Equality(SenX.Monitor.Api.MonitorSample, SenX.Monitor.Api.MonitorSample)
+  Boolean op_Inequality(SenX.Monitor.Api.MonitorSample, SenX.Monitor.Api.MonitorSample)
+  Double Seconds
+  Double get_Seconds()
+  Int32 GetHashCode()
+  Int64 Frames
+  Int64 get_Frames()
+  SenX.Monitor.Api.MonitorFrame Frame
+  SenX.Monitor.Api.MonitorFrame get_Frame()
+  SenX.Monitor.Api.MonitorSample <Clone>$()
+  SenX.Monitor.Api.MonitorWorldPoint World
+  SenX.Monitor.Api.MonitorWorldPoint get_World()
+  System.Collections.Generic.IReadOnlyDictionary`2[System.String,System.Double] PartsMs
+  System.Collections.Generic.IReadOnlyDictionary`2[System.String,System.Double] get_PartsMs()
+  System.Collections.Generic.IReadOnlyList`1[SenX.Monitor.Api.MonitorListReply] Lists
+  System.Collections.Generic.IReadOnlyList`1[SenX.Monitor.Api.MonitorListReply] get_Lists()
+  System.DateTime Time
+  System.DateTime get_Time()
+  System.String Server
+  System.String ToString()
+  System.String get_Server()
+  Void .ctor(System.String, System.DateTime, SenX.Monitor.Api.MonitorFrame, System.Collections.Generic.IReadOnlyDictionary`2[System.String,System.Double], SenX.Monitor.Api.MonitorWorldPoint, System.Collections.Generic.IReadOnlyList`1[SenX.Monitor.Api.MonitorListReply])
+  Void Deconstruct(System.String ByRef, System.DateTime ByRef, SenX.Monitor.Api.MonitorFrame ByRef, System.Collections.Generic.IReadOnlyDictionary`2[System.String,System.Double] ByRef, SenX.Monitor.Api.MonitorWorldPoint ByRef, System.Collections.Generic.IReadOnlyList`1[SenX.Monitor.Api.MonitorListReply] ByRef)
+  Void set_Frame(SenX.Monitor.Api.MonitorFrame)
+  Void set_Frames(Int64)
+  Void set_Lists(System.Collections.Generic.IReadOnlyList`1[SenX.Monitor.Api.MonitorListReply])
+  Void set_PartsMs(System.Collections.Generic.IReadOnlyDictionary`2[System.String,System.Double])
+  Void set_Seconds(Double)
+  Void set_Server(System.String)
+  Void set_Time(System.DateTime)
+  Void set_World(SenX.Monitor.Api.MonitorWorldPoint)
+SenX.Monitor.Api.MonitorSavedRun
+  Boolean Equals(SenX.Monitor.Api.MonitorSavedRun)
+  Boolean Equals(System.Object)
+  Boolean op_Equality(SenX.Monitor.Api.MonitorSavedRun, SenX.Monitor.Api.MonitorSavedRun)
+  Boolean op_Inequality(SenX.Monitor.Api.MonitorSavedRun, SenX.Monitor.Api.MonitorSavedRun)
+  Double AverageFrameMs
+  Double Seconds
+  Double SimSpeed
+  Double get_AverageFrameMs()
+  Double get_Seconds()
+  Double get_SimSpeed()
+  Int32 GetHashCode()
+  SenX.Monitor.Api.MonitorSavedRun <Clone>$()
+  System.DateTime Time
+  System.DateTime get_Time()
+  System.String Id
+  System.String ToString()
+  System.String get_Id()
+  Void .ctor(System.String, System.DateTime, Double, Double, Double)
+  Void Deconstruct(System.String ByRef, System.DateTime ByRef, Double ByRef, Double ByRef, Double ByRef)
+  Void set_AverageFrameMs(Double)
+  Void set_Id(System.String)
+  Void set_Seconds(Double)
+  Void set_SimSpeed(Double)
+  Void set_Time(System.DateTime)
+SenX.Monitor.Api.MonitorServerApi
+  SenX.Monitor.Api.IMonitorServerApi Current
+  SenX.Monitor.Api.IMonitorServerApi get_Current()
+  Void Register(SenX.Monitor.Api.IMonitorServerApi)
+SenX.Monitor.Api.MonitorServerInfo
+  Boolean Connected
+  Boolean Equals(SenX.Monitor.Api.MonitorServerInfo)
+  Boolean Equals(System.Object)
+  Boolean get_Connected()
+  Boolean op_Equality(SenX.Monitor.Api.MonitorServerInfo, SenX.Monitor.Api.MonitorServerInfo)
+  Boolean op_Inequality(SenX.Monitor.Api.MonitorServerInfo, SenX.Monitor.Api.MonitorServerInfo)
+  Int32 GetHashCode()
+  SenX.Monitor.Api.MonitorServerInfo <Clone>$()
+  System.DateTime LastSeen
+  System.DateTime get_LastSeen()
+  System.String Cluster
+  System.String Id
+  System.String Name
+  System.String ToString()
+  System.String get_Cluster()
+  System.String get_Id()
+  System.String get_Name()
+  Void .ctor(System.String, System.String, System.String, Boolean, System.DateTime)
+  Void Deconstruct(System.String ByRef, System.String ByRef, System.String ByRef, Boolean ByRef, System.DateTime ByRef)
+  Void set_Cluster(System.String)
+  Void set_Connected(Boolean)
+  Void set_Id(System.String)
+  Void set_LastSeen(System.DateTime)
+  Void set_Name(System.String)
+SenX.Monitor.Api.MonitorSlowCall
+  Boolean Equals(SenX.Monitor.Api.MonitorSlowCall)
+  Boolean Equals(System.Object)
+  Boolean MainThread
+  Boolean get_MainThread()
+  Boolean op_Equality(SenX.Monitor.Api.MonitorSlowCall, SenX.Monitor.Api.MonitorSlowCall)
+  Boolean op_Inequality(SenX.Monitor.Api.MonitorSlowCall, SenX.Monitor.Api.MonitorSlowCall)
+  Double Ms
+  Double get_Ms()
+  Int32 GetHashCode()
+  SenX.Monitor.Api.MonitorSlowCall <Clone>$()
+  System.String Kind
+  System.String Name
+  System.String ToString()
+  System.String get_Kind()
+  System.String get_Name()
+  Void .ctor(Double, System.String, System.String, Boolean)
+  Void Deconstruct(Double ByRef, System.String ByRef, System.String ByRef, Boolean ByRef)
+  Void set_Kind(System.String)
+  Void set_MainThread(Boolean)
+  Void set_Ms(Double)
+  Void set_Name(System.String)
+SenX.Monitor.Api.MonitorSource
+  Int32 value__
+  SenX.Monitor.Api.MonitorSource History
+  SenX.Monitor.Api.MonitorSource Run
+  SenX.Monitor.Api.MonitorSource SavedRun
+SenX.Monitor.Api.MonitorStatus
+  Boolean Connected
+  Boolean Equals(SenX.Monitor.Api.MonitorStatus)
+  Boolean Equals(System.Object)
+  Boolean RunGoing
+  Boolean get_Connected()
+  Boolean get_RunGoing()
+  Boolean op_Equality(SenX.Monitor.Api.MonitorStatus, SenX.Monitor.Api.MonitorStatus)
+  Boolean op_Inequality(SenX.Monitor.Api.MonitorStatus, SenX.Monitor.Api.MonitorStatus)
+  Int32 GetHashCode()
+  SenX.Monitor.Api.MonitorStatus <Clone>$()
+  System.Nullable`1[System.DateTime] LagSince
+  System.Nullable`1[System.DateTime] LastData
+  System.Nullable`1[System.DateTime] Started
+  System.Nullable`1[System.DateTime] get_LagSince()
+  System.Nullable`1[System.DateTime] get_LastData()
+  System.Nullable`1[System.DateTime] get_Started()
+  System.String ToString()
+  System.TimeSpan HistoryReach
+  System.TimeSpan get_HistoryReach()
+  Void .ctor(Boolean, System.Nullable`1[System.DateTime], System.Nullable`1[System.DateTime], Boolean, System.Nullable`1[System.DateTime], System.TimeSpan)
+  Void Deconstruct(Boolean ByRef, System.Nullable`1[System.DateTime] ByRef, System.Nullable`1[System.DateTime] ByRef, Boolean ByRef, System.Nullable`1[System.DateTime] ByRef, System.TimeSpan ByRef)
+  Void set_Connected(Boolean)
+  Void set_HistoryReach(System.TimeSpan)
+  Void set_LagSince(System.Nullable`1[System.DateTime])
+  Void set_LastData(System.Nullable`1[System.DateTime])
+  Void set_RunGoing(Boolean)
+  Void set_Started(System.Nullable`1[System.DateTime])
+SenX.Monitor.Api.MonitorThread
+  Int32 value__
+  SenX.Monitor.Api.MonitorThread Main
+  SenX.Monitor.Api.MonitorThread Mixed
+  SenX.Monitor.Api.MonitorThread Unknown
+  SenX.Monitor.Api.MonitorThread Worker
+SenX.Monitor.Api.MonitorThreads
+  Int32 MinorPercent
+  SenX.Monitor.Api.MonitorThread Of(Double, Double)
+SenX.Monitor.Api.MonitorWorldPoint
+  Boolean Equals(SenX.Monitor.Api.MonitorWorldPoint)
+  Boolean Equals(System.Object)
+  Boolean op_Equality(SenX.Monitor.Api.MonitorWorldPoint, SenX.Monitor.Api.MonitorWorldPoint)
+  Boolean op_Inequality(SenX.Monitor.Api.MonitorWorldPoint, SenX.Monitor.Api.MonitorWorldPoint)
+  Double CpuPercent
+  Double ManagedMemoryMb
+  Double MemoryMb
+  Double PingMs
+  Double get_CpuPercent()
+  Double get_ManagedMemoryMb()
+  Double get_MemoryMb()
+  Double get_PingMs()
+  Int32 GetHashCode()
+  Int64 Asteroids
+  Int64 Blocks
+  Int64 ConcealedBlocks
+  Int64 ConcealedGrids
+  Int64 DynamicGrids
+  Int64 Grids
+  Int64 Pcu
+  Int64 Planets
+  Int64 Players
+  Int64 StaticGrids
+  Int64 get_Asteroids()
+  Int64 get_Blocks()
+  Int64 get_ConcealedBlocks()
+  Int64 get_ConcealedGrids()
+  Int64 get_DynamicGrids()
+  Int64 get_Grids()
+  Int64 get_Pcu()
+  Int64 get_Planets()
+  Int64 get_Players()
+  Int64 get_StaticGrids()
+  SenX.Monitor.Api.MonitorWorldPoint <Clone>$()
+  System.DateTime Time
+  System.DateTime get_Time()
+  System.String ToString()
+  System.TimeSpan Uptime
+  System.TimeSpan get_Uptime()
+  Void .ctor(System.DateTime, Int64, Int64, Int64, Int64, Double)
+  Void Deconstruct(System.DateTime ByRef, Int64 ByRef, Int64 ByRef, Int64 ByRef, Int64 ByRef, Double ByRef)
+  Void set_Asteroids(Int64)
+  Void set_Blocks(Int64)
+  Void set_ConcealedBlocks(Int64)
+  Void set_ConcealedGrids(Int64)
+  Void set_CpuPercent(Double)
+  Void set_Grids(Int64)
+  Void set_ManagedMemoryMb(Double)
+  Void set_MemoryMb(Double)
+  Void set_Pcu(Int64)
+  Void set_PingMs(Double)
+  Void set_Planets(Int64)
+  Void set_Players(Int64)
+  Void set_StaticGrids(Int64)
+  Void set_Time(System.DateTime)
+  Void set_Uptime(System.TimeSpan)

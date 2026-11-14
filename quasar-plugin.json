@@ -1,0 +1,20 @@
+{
+  "id": "senx.monitor",
+  "displayName": "Monitor",
+  "version": "0.1.0",
+  "entryAssembly": "SenX.Monitor.Quasar.dll",
+  "entryType": "SenX.Monitor.Quasar.MonitorQuasarPlugin",
+  "projectPath": "src/SenX.Monitor.Quasar/SenX.Monitor.Quasar.csproj",
+  "staticAssets": "src/SenX.Monitor/wwwroot",
+  "stylesheets": [
+    "monitor.css"
+  ],
+  "quasarVersion": ">=1.6.0",
+  "companionPlugins": [
+    {
+      "id": "senx.monitor",
+      "projectPath": "src/SenX.Monitor.QuasarCompanion/SenX.Monitor.QuasarCompanion.csproj",
+      "entryAssembly": "SenX.Monitor.QuasarCompanion.dll"
+    }
+  ]
+}

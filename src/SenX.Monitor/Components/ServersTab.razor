@@ -1,0 +1,60 @@
+@using System.Globalization
+@using SenX.Monitor.Components.Charts
+@using SenX.Monitor.Contracts
+@inject IMonitorServers Servers
+@inject HistoryStore Store
+@inject MonitorCollector Collector
+
+<ClientCharts View="servers" ServerId="" RangeMinutes="@RangeMinutes" Live="@Live">
+    <p class="monitor-hint">Every connected server, up to 30 seconds old. Pick a server above for its own live charts.</p>
+
+    <table class="monitor-table">
+        <thead><tr><th>Server</th><th>Sim speed</th><th>Available</th><th>Frame p99</th><th>Players</th><th>Ping</th><th>Grids</th><th>Blocks</th><th>PCU</th></tr></thead>
+        <tbody>
+            @foreach ((MonitorServer server, HistoryPoint? latest, HistoryCensus? census) in _rows)
+            {
+                <tr>
+                    <td>@server.Name</td>
+                    @if (latest == null)
+                    {
+                        <td colspan="8">@(Collector.Problem(server.HistoryId) ?? "Nothing collected yet.")</td>
+                    }
+                    else
+                    {
+                        <td>@latest.SimSpeed.ToString("0.00", CultureInfo.InvariantCulture)</td>
+                        <td>@FrameParts.Available(latest).ToString("0.0", CultureInfo.InvariantCulture) ms</td>
+                        <td>@latest.FrameP99.ToString("0.0", CultureInfo.InvariantCulture) ms</td>
+                        <td>@census?.OnlinePlayers</td>
+                        <td>@census?.PingMean.ToString("0.0", CultureInfo.InvariantCulture)</td>
+                        <td>@census?.Grids</td>
+                        <td>@census?.Blocks.ToString("N0", CultureInfo.CurrentCulture)</td>
+                        <td>@census?.Pcu.ToString("N0", CultureInfo.CurrentCulture)</td>
+                    }
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    <div class="monitor-charts">
+        <ChartBox Id="serversSim" Title="Sim speed" />
+        <ChartBox Id="serversAvailable" Title="Available frame time" />
+        <ChartBox Id="serversFrames" Title="Frame p99" />
+        <ChartBox Id="serversPlayers" Title="Players online" />
+    </div>
+</ClientCharts>
+
+@code {
+    private List<(MonitorServer Server, HistoryPoint? Latest, HistoryCensus? Census)> _rows = [];
+
+    [Parameter, EditorRequired] public int RangeMinutes { get; set; }
+
+    [Parameter] public bool Live { get; set; } = true;
+
+    /// <summary>Changes on each page refresh. Blazor doesn't update a tab whose parameters all stayed the same.</summary>
+    [Parameter] public int Tick { get; set; }
+
+    protected override void OnParametersSet() => _rows = Servers.Connected()
+        .OrderBy(server => server.Name, StringComparer.Ordinal)
+        .Select(server => (server, Store.Latest(server.HistoryId), Store.LatestCensus(server.HistoryId)))
+        .ToList();
+}

@@ -1,0 +1,22 @@
+<Project>
+  <PropertyGroup>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <Version>0.1.0</Version>
+    <Authors>SentorX</Authors>
+    <Product>Monitor</Product>
+    <Copyright>Copyright (c) 2026 SentorX</Copyright>
+    <IsPackable>false</IsPackable>
+    <WarningsAsErrors>$(WarningsAsErrors);RS0030</WarningsAsErrors>
+  </PropertyGroup>
+
+  <!-- Optional local paths (DS64, Magnetar, MagnetarBin). Ignored by git.
+       Values passed on the command line, as Quasar does, always win. -->
+  <Import Project="Directory.Build.props.user" Condition="Exists('$(MSBuildThisFileDirectory)Directory.Build.props.user')" />
+  <!-- The links the setup script makes, the same as the other plugins. Directory.Build.props.user wins over these. -->
+  <PropertyGroup>
+    <DS64 Condition="'$(DS64)' == '' AND Exists('$(MSBuildThisFileDirectory)GameBinaries\Sandbox.Game.dll')">$(MSBuildThisFileDirectory)GameBinaries</DS64>
+    <TorchDir Condition="'$(TorchDir)' == '' AND Exists('$(MSBuildThisFileDirectory)TorchBinaries\Torch.dll')">$(MSBuildThisFileDirectory)TorchBinaries</TorchDir>
+  </PropertyGroup>
+
+</Project>

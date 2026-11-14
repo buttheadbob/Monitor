@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- The Torch pages in a plain window, fed by the same simulated server as the web preview. No Torch or game needed. -->
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net48</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <AssemblyName>TorchPreview</AssemblyName>
+    <RootNamespace>TorchPreview</RootNamespace>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <Platforms>x64</Platforms>
+    <PlatformTarget>x64</PlatformTarget>
+    <TorchDir Condition="'$(TorchDir)' == ''">$(DS64)\..</TorchDir>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Using Include="System.IO" />
+    <Compile Include="..\PreviewHost\SimulatedServers.cs" Link="SimulatedServers.cs" />
+    <ProjectReference Include="..\..\src\SenX.Monitor.Torch\SenX.Monitor.Torch.csproj" />
+    <PackageReference Include="System.Memory" Version="4.6.3" />
+    <!-- Torch brings this one when it's a plugin, and here nothing does. -->
+    <Reference Include="Newtonsoft.Json" HintPath="$(TorchDir)\Newtonsoft.Json.dll" Private="True" />
+  </ItemGroup>
+
+</Project>

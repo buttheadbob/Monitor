@@ -1,0 +1,15 @@
+<figure class="monitor-chart @(Wide ? "monitor-chart-wide" : null)">
+    <figcaption>@Title</figcaption>
+    <div class="monitor-plot" data-chart="@Id"></div>
+    <p class="monitor-empty" data-chart-empty="@Id" hidden>No data for this range yet.</p>
+</figure>
+
+@code {
+    /// <summary>Matches a chart in the data the browser fetches.</summary>
+    [Parameter, EditorRequired] public string Id { get; set; } = string.Empty;
+
+    [Parameter, EditorRequired] public string Title { get; set; } = string.Empty;
+
+    /// <summary>Takes the whole row, for the chart that matters most.</summary>
+    [Parameter] public bool Wide { get; set; }
+}

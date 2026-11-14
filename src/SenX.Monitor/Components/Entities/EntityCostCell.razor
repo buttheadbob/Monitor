@@ -1,0 +1,25 @@
+@using System.Globalization
+@inject IMonitorServers Servers
+@inject HistoryStore Store
+
+<td class="mud-table-cell" data-label="ms/f">@Text</td>
+
+@code {
+    [Parameter] public string? AgentId { get; set; }
+
+    [Parameter] public long EntityId { get; set; }
+
+    // Quasar passes every entity detail to every contribution, and a component must accept them all.
+    [Parameter(CaptureUnmatchedValues = true)] public Dictionary<string, object> Other { get; set; } = [];
+
+    private string Text
+    {
+        get
+        {
+            MonitorServer? server = Servers.Connected().FirstOrDefault(row => row.AgentId == AgentId);
+            StoredGroup? cost = server == null ? null : Store.LatestGridCost(server.HistoryId, EntityId);
+
+            return cost == null ? "-" : (cost.MainMs + cost.WorkerMs).ToString("0.00", CultureInfo.InvariantCulture);
+        }
+    }
+}

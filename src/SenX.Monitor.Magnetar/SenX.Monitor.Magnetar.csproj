@@ -1,0 +1,75 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!-- Magnetar's two launchers: MagnetarLegacy on .NET Framework 4.8, Windows only, and MagnetarInterim on .NET 10. -->
+    <TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('Windows'))">net48;net10.0</TargetFrameworks>
+    <TargetFramework Condition="!$([MSBuild]::IsOSPlatform('Windows'))">net10.0</TargetFramework>
+    <!-- The game's assemblies are .NET Framework ones, which is only noise when compiling against them from net10. -->
+    <NoWarn>$(NoWarn);NU1701;MSB3277</NoWarn>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <AssemblyName>SenX.Monitor.Magnetar</AssemblyName>
+    <RootNamespace>SenX.Monitor.Magnetar</RootNamespace>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <OutputType>Library</OutputType>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+    <Platforms>x64</Platforms>
+    <PlatformTarget>x64</PlatformTarget>
+
+    <Magnetar Condition="'$(Magnetar)' == '' AND $([MSBuild]::IsOSPlatform('Windows'))">$(APPDATA)\Magnetar</Magnetar>
+    <Magnetar Condition="'$(Magnetar)' == '' AND !$([MSBuild]::IsOSPlatform('Windows'))">$(HOME)/.local/share/Magnetar</Magnetar>
+    <MagnetarBin Condition="'$(MagnetarBin)' == '' AND '$(Magnetar)' != '' AND $([MSBuild]::IsOSPlatform('Windows'))">$(Magnetar)/Libraries/MagnetarLegacy</MagnetarBin>
+    <MagnetarBin Condition="'$(MagnetarBin)' == '' AND '$(Magnetar)' != '' AND !$([MSBuild]::IsOSPlatform('Windows')) AND Exists('$(Magnetar)/Libraries/MagnetarInterim/PluginSdk.dll')">$(Magnetar)/Libraries/MagnetarInterim</MagnetarBin>
+    <MagnetarBin Condition="'$(MagnetarBin)' == '' AND '$(Magnetar)' != '' AND !$([MSBuild]::IsOSPlatform('Windows'))">$(Magnetar)/Bin</MagnetarBin>
+
+    <!-- The server template's name for the same folder. -->
+    <DS64 Condition="'$(DS64)' == '' AND '$(Dedicated64)' != ''">$(Dedicated64)</DS64>
+    <DS64 Condition="'$(DS64)' == '' AND $([MSBuild]::IsOSPlatform('Windows'))">C:\Program Files (x86)\Steam\steamapps\common\SpaceEngineersDedicatedServer\DedicatedServer64</DS64>
+    <DS64 Condition="'$(DS64)' == '' AND !$([MSBuild]::IsOSPlatform('Windows'))">$(HOME)/.steam/steam/steamapps/common/SpaceEngineersDedicatedServer/DedicatedServer64</DS64>
+
+    <!-- The access attribute is defined in source, so the publicizer must not inject a second copy. -->
+    <PublicizerRuntimeStrategies>Unsafe</PublicizerRuntimeStrategies>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="Sandbox.Game" HintPath="$(DS64)\Sandbox.Game.dll" Private="False" />
+    <Reference Include="Sandbox.Common" HintPath="$(DS64)\Sandbox.Common.dll" Private="False" />
+    <Reference Include="VRage" HintPath="$(DS64)\VRage.dll" Private="False" />
+    <Reference Include="VRage.Game" HintPath="$(DS64)\VRage.Game.dll" Private="False" />
+    <Reference Include="VRage.Library" HintPath="$(DS64)\VRage.Library.dll" Private="False" />
+    <Reference Include="VRage.Math" HintPath="$(DS64)\VRage.Math.dll" Private="False" />
+    <Reference Include="HavokWrapper" HintPath="$(DS64)\HavokWrapper.dll" Private="False" />
+    <Reference Include="Sandbox.Graphics" HintPath="$(DS64)\Sandbox.Graphics.dll" Private="False" />
+    <Reference Include="Newtonsoft.Json" HintPath="$(DS64)\Newtonsoft.Json.dll" Private="False" />
+    <Reference Include="PluginSdk" HintPath="$(MagnetarBin)/PluginSdk.dll" Private="False" />
+  </ItemGroup>
+
+  <!-- Build time only. Magnetar brings its own 0Harmony.dll, so nothing here is copied. -->
+  <ItemGroup>
+    <PackageReference Include="Lib.Harmony" Version="2.4.2" ExcludeAssets="runtime" PrivateAssets="all" />
+    <!-- ExcludeAssets: the package's own attribute source would clash with ours. Its setting for
+         skipping that file removes the wrong path in 2.3.2. -->
+    <PackageReference Include="Krafs.Publicizer" Version="2.3.2" PrivateAssets="all" ExcludeAssets="contentFiles" />
+    <Publicize Include="Sandbox.Game" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="SenX.Monitor.Verify" />
+    <InternalsVisibleTo Include="SenX.Monitor.Magnetar.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\SenX.Monitor.Core\SenX.Monitor.Core.csproj" />
+    <ProjectReference Include="..\SenX.Monitor.Contracts\SenX.Monitor.Contracts.csproj" />
+  </ItemGroup>
+
+  <Target Name="ValidateDedicatedServerReferences" BeforeTargets="ResolveAssemblyReferences" Condition="!Exists('$(DS64)\Sandbox.Game.dll')">
+    <Error Text="Dedicated Server assemblies were not found under DS64='$(DS64)'. Set DS64 to the DedicatedServer64 directory." />
+  </Target>
+
+  <Target Name="ValidatePluginSdkReference" BeforeTargets="ResolveAssemblyReferences" Condition="!Exists('$(MagnetarBin)/PluginSdk.dll')">
+    <Error Text="PluginSdk.dll was not found under MagnetarBin='$(MagnetarBin)'. Set Magnetar to the Magnetar installation directory." />
+  </Target>
+
+</Project>

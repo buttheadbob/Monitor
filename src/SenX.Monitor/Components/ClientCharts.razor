@@ -1,0 +1,101 @@
+@using System.Globalization
+@using Microsoft.JSInterop
+@using SenX.Monitor.Contracts
+@implements IAsyncDisposable
+@inject IJSRuntime JS
+@inject NavigationManager Navigation
+@inject MonitorAssets Files
+
+<div @ref="_root">@ChildContent</div>
+
+@code {
+    private const int ShortRangeRefreshMs = 1000;
+    private const int LongRangeRefreshMs = 30000;
+    private const int LongRangeMinutes = 60;
+
+    // Every server is collected each 30 seconds, and pulling them all each second for one open tab isn't worth it.
+    private const string ServersView = "servers";
+
+    private ElementReference _root;
+    private IJSObjectReference? _module;
+    private int _board;
+    private string? _shown;
+
+    /// <summary>Which charts to fetch, and the page holds a <see cref="ChartBox"/> for each.</summary>
+    [Parameter, EditorRequired] public string View { get; set; } = string.Empty;
+
+    [Parameter, EditorRequired] public string ServerId { get; set; } = string.Empty;
+
+    [Parameter, EditorRequired] public int RangeMinutes { get; set; }
+
+    [Parameter] public HistoryDimension List { get; set; } = HistoryDimension.Grids;
+
+    /// <summary>Off holds the charts still, so an admin can study what's on screen.</summary>
+    [Parameter] public bool Live { get; set; } = true;
+
+    /// <summary>With <see cref="To"/>, shows this stretch of the past rather than the latest minutes.</summary>
+    [Parameter] public DateTime? From { get; set; }
+
+    [Parameter] public DateTime? To { get; set; }
+
+    /// <summary>Which mod, for the charts that show one.</summary>
+    [Parameter] public string? Mod { get; set; }
+
+    /// <summary>How often Live refreshes, in ms, for a view that knows better than the range does. Unset follows the range.</summary>
+    [Parameter] public int? RefreshMs { get; set; }
+
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    private string Url => Navigation.ToAbsoluteUri(FormattableString.Invariant(
+        $"{MonitorEndpoints.ChartsRoute}?server={Uri.EscapeDataString(ServerId)}&view={View}&minutes={RangeMinutes}&list={List}{Window}{ModQuery}")).ToString();
+
+    private string ModQuery => string.IsNullOrEmpty(Mod) ? string.Empty : "&mod=" + Uri.EscapeDataString(Mod);
+
+    private string Window => From is { } from && To is { } to
+        ? FormattableString.Invariant($"&from={new DateTimeOffset(from).ToUnixTimeSeconds()}&to={new DateTimeOffset(to).ToUnixTimeSeconds()}")
+        : string.Empty;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        try
+        {
+            if (firstRender)
+            {
+                string module = Navigation.ToAbsoluteUri(Files.Base + "monitor-charts.js").ToString();
+                _module = await JS.InvokeAsync<IJSObjectReference>("import", module);
+                _board = await _module.InvokeAsync<int>("start", _root, Files.Base);
+            }
+
+            string url = Url;
+            string shown = url + (Live ? "|live" : "|held") + "|" + RefreshMs;
+
+            if (_module != null && shown != _shown)
+            {
+                _shown = shown;
+                bool slow = RangeMinutes > LongRangeMinutes || View == ServersView;
+                int refreshMs = !Live ? 0 : RefreshMs ?? (slow ? LongRangeRefreshMs : ShortRangeRefreshMs);
+                await _module.InvokeVoidAsync("show", _board, url, refreshMs);
+            }
+        }
+        catch (JSDisconnectedException)
+        {
+            // The browser went away, so there's nothing left to draw on.
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_module == null)
+            return;
+
+        try
+        {
+            await _module.InvokeVoidAsync("stop", _board);
+            await _module.DisposeAsync();
+        }
+        catch (JSDisconnectedException)
+        {
+            // The browser went away first, which cleaned up for us.
+        }
+    }
+}

@@ -1,0 +1,146 @@
+@using System.Globalization
+@using Microsoft.JSInterop
+@using SenX.Monitor.Contracts
+@inject IJSRuntime JS
+
+<div class="monitor-row">
+    <span class="monitor-hint">@(Result.RequestedBy.Length > 0 ? "Started by " + Result.RequestedBy + "." : null)</span>
+    <button type="button" @onclick="() => CopyAsync(ReportText.ForRun(Result))">Copy as text</button>
+</div>
+
+<div class="monitor-tiles">
+    <div class="monitor-stat"><span>Measured</span><b>@Num(Result.Seconds, "0.0") s</b></div>
+    <div class="monitor-stat"><span>Sim speed</span><b>@Num(Result.SimSpeed, "0.00")</b></div>
+    <div class="monitor-stat"><span>Frame average</span><b>@Num(Result.AverageFrameMs, "0.0") ms</b></div>
+    <div class="monitor-stat"><span>Frame worst</span><b>@Num(Result.WorstFrameMs, "0.0") ms</b></div>
+    <div class="monitor-stat"><span>Timing added</span><b>@Num(Result.TimingMsPerFrame, "0.00") ms/f</b></div>
+    <div class="monitor-stat" title="@ThreadTags.MainWaitTip"><span>Main waiting</span><b>@Num(Result.MainWaitMsPerFrame, "0.00") ms/f</b></div>
+    <div class="monitor-stat" title="@ThreadTags.ParallelWorkTip"><span>Parallel work</span><b>@Num(Result.ParallelWorkerMsPerFrame, "0.00") ms/f</b></div>
+    <div class="monitor-stat"><span>Coverage</span><b>@Num(Result.Coverage * 100d, "0.0")%</b></div>
+</div>
+
+@if (Result.EndedEarly)
+{
+    <p class="monitor-notice">The server paused, so the run stopped early.</p>
+}
+
+@if (Result.LostSites != null)
+{
+    <p class="monitor-notice">@Result.LostSites.</p>
+}
+
+@if (Result.ClusterProblem != null)
+{
+    <p class="monitor-notice">Clusters weren't timed, because @Result.ClusterProblem.</p>
+}
+
+<PanelGrid Page="runs" Items="@Panels()" />
+
+@code {
+    /// <summary>Every list a run can hold, in the order they're shown.</summary>
+    public static readonly (string Title, string List)[] Lists =
+    [
+        ("Physics clusters", RunLists.Clusters),
+        ("Grids", RunLists.Grids),
+        ("Block types", RunLists.BlockTypes),
+        ("Block definitions", RunLists.Definitions),
+        ("Players", RunLists.Players),
+        ("Factions", RunLists.Factions),
+        ("Scripts", RunLists.Scripts),
+        ("Session components", RunLists.Session),
+        ("Game logic", RunLists.Logic),
+        ("Callbacks", RunLists.Callbacks),
+        ("RPCs received", RunLists.Rpcs),
+        ("RPCs sent", RunLists.RpcsSent),
+
+        // Mods sit above entity types, in the same stack.
+        ("Mods and plugins", RunLists.Mods),
+        ("Entity types", RunLists.Entities),
+    ];
+
+    private const string ModsAndEntities = "mods-entities";
+
+    private List<PanelGrid.PanelItem> Panels()
+    {
+        var panels = new List<PanelGrid.PanelItem>();
+
+        foreach ((string title, string list) in Lists)
+        {
+            List<RunRow> rows = Result.Rows.Where(row => row.List == list).ToList();
+            if (rows.Count == 0)
+                continue;
+
+            string? group = list is RunLists.Mods or RunLists.Entities ? ModsAndEntities : null;
+            panels.Add(new PanelGrid.PanelItem(title, rows.Count, list == RunLists.RpcsSent ? SentTable(rows) : CostTable(list, rows), group));
+        }
+
+        if (Result.SlowCalls.Count > 0)
+            panels.Add(new PanelGrid.PanelItem("Slowest single calls", Result.SlowCalls.Count, @<SlowCallsTable Calls="@Result.SlowCalls" />));
+
+        return panels;
+    }
+
+    private static RenderFragment SentTable(List<RunRow> rows) =>
+        @<table class="monitor-table">
+            <thead><tr><th>Name</th><th>KB/s</th><th>Events/f</th></tr></thead>
+            <tbody>
+                @foreach (RunRow row in rows)
+                {
+                    <tr><td title="@row.Name">@row.Name</td><td>@Num(row.BytesPerSecond / 1024d, "0.0")</td><td>@Num(row.CallsPerFrame, "0.#")</td></tr>
+                }
+            </tbody>
+        </table>;
+
+    private RenderFragment CostTable(string list, List<RunRow> rows) =>
+        @<table class="monitor-table">
+            <thead><tr><th>Name</th><th>@(list == RunLists.Clusters ? "ms alone" : "Main ms/f")</th><th>Workers ms/f</th><th>Peak ms</th><th>Thread</th></tr></thead>
+            <tbody>
+                @foreach (RunRow row in rows)
+                {
+                    <tr>
+                        <td title="@row.Name">
+                            @if (row.Members is { Count: > 0 } members)
+                            {
+                                <details>
+                                    <summary>@row.Name</summary>
+                                    @foreach (string member in members)
+                                    {
+                                        <div>@member</div>
+                                    }
+                                </details>
+                            }
+                            else
+                            {
+                                @row.Name
+                            }
+
+                            @if (row.Gps is { } gps)
+                            {
+                                <button type="button" class="monitor-entity-action" title="Copies a GPS line to paste into the game." @onclick="() => CopyAsync(gps)">GPS</button>
+                            }
+                        </td>
+                        <td>@Num(row.MainMsPerFrame, "0.00")</td>
+                        <td>@Num(row.WorkerMsPerFrame, "0.00")</td>
+                        <td>@Num(row.PeakMs, "0.00")</td>
+                        <ThreadCell Main="row.MainMsPerFrame" Worker="row.WorkerMsPerFrame" Known="@(list != RunLists.Clusters)" />
+                    </tr>
+                }
+            </tbody>
+        </table>;
+
+    [Parameter, EditorRequired] public RunResultResponse Result { get; set; } = null!;
+
+    private async Task CopyAsync(string text)
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("navigator.clipboard.writeText", text);
+        }
+        catch (JSException)
+        {
+            // Browsers refuse this outside https and localhost. Nothing is lost, the text is still on the page.
+        }
+    }
+
+    private static string Num(double value, string format) => value.ToString(format, CultureInfo.InvariantCulture);
+}

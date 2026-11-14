@@ -1,0 +1,27 @@
+@using System.Globalization
+@using SenX.Monitor.Api
+@using SenX.Monitor.Contracts
+
+@* Which threads a row ran on: a word, and a bar split into game thread and worker time. *@
+<td class="monitor-thread">
+    @if (Thread != MonitorThread.Unknown)
+    {
+        <span class="monitor-thread-tag monitor-thread-@Thread.ToString().ToLowerInvariant()">@ThreadTags.Name(Thread)</span>
+        <span class="monitor-split" title="@Title" aria-hidden="true"><span class="monitor-split-main" style="width: @MainPercent%"></span></span>
+    }
+</td>
+
+@code {
+    [Parameter] public double Main { get; set; }
+
+    [Parameter] public double Worker { get; set; }
+
+    /// <summary>False for a list where the thread means nothing, such as clusters.</summary>
+    [Parameter] public bool Known { get; set; } = true;
+
+    private MonitorThread Thread => Known ? MonitorThreads.Of(Main, Worker) : MonitorThread.Unknown;
+
+    private string MainPercent => (Main + Worker > 0d ? Math.Max(Main, 0d) / (Main + Worker) * 100d : 0d).ToString("0.#", CultureInfo.InvariantCulture);
+
+    private string Title => string.Create(CultureInfo.InvariantCulture, $"Game thread {Main:0.00} ms/f, workers {Worker:0.00} ms/f");
+}

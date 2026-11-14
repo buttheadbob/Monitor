@@ -1,0 +1,37 @@
+@page "/monitor-api-sample"
+@using System.Runtime.CompilerServices
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components
+@using Quasar.Plugin.Abstractions.Security
+@attribute [Authorize(Policy = QuasarPolicyNames.CanView)]
+@inject IServiceProvider Services
+
+@* Nothing on this page names a Monitor type, so it still loads when Monitor isn't installed. *@
+
+@if (_panel == null)
+{
+    <p>Monitor isn't installed, so there's nothing to show.</p>
+}
+else
+{
+    <DynamicComponent Type="@_panel" />
+}
+
+@code {
+    private const string ApiType = "SenX.Monitor.Api.IMonitorApi, SenX.Monitor.Api";
+
+    private Type? _panel;
+
+    protected override void OnInitialized()
+    {
+        // Null when Monitor is missing or disabled, because no folder Quasar looks in has the file.
+        Type? api = Type.GetType(ApiType, throwOnError: false);
+
+        if (api != null && Services.GetService(api) != null)
+            _panel = Panel();
+    }
+
+    // Kept apart, so the runtime only loads Monitor's types once it's known they're there.
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static Type Panel() => typeof(MonitorPanel);
+}

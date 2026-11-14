@@ -1,0 +1,23 @@
+@using System.Globalization
+@using SenX.Monitor.Contracts
+
+<table class="monitor-table">
+    <thead><tr><th>Call</th><th>Kind</th><th>Thread</th><th>ms</th></tr></thead>
+    <tbody>
+        @foreach (SlowCallRow call in Calls.Take(MaxRows))
+        {
+            <tr>
+                <td>@call.Name</td>
+                <td>@call.Where</td>
+                <td>@(call.MainThread ? "Main" : "Worker")</td>
+                <td>@call.Ms.ToString("0.0", CultureInfo.InvariantCulture)</td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+@code {
+    private const int MaxRows = 20;
+
+    [Parameter, EditorRequired] public IReadOnlyList<SlowCallRow> Calls { get; set; } = [];
+}

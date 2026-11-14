@@ -1,0 +1,7 @@
+<?xml version="1.0"?>
+<PluginManifest xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <Name>Monitor</Name>
+  <Guid>f58cf508-46b1-4964-9836-fd42429adbe0</Guid>
+  <Repository></Repository>
+  <Version>v0.1.0</Version>
+</PluginManifest>

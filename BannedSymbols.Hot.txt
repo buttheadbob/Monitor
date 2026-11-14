@@ -1,0 +1,12 @@
+T:System.Linq.Enumerable;No LINQ in hot code: it allocates.
+T:System.Collections.Concurrent.ConcurrentDictionary`2;No concurrent dictionaries in hot code.
+T:System.Collections.Concurrent.ConcurrentQueue`1;No concurrent queues in hot code.
+T:System.Threading.Tasks.Task;No tasks in hot code.
+T:System.Threading.Monitor;No locks in hot code.
+T:System.Text.StringBuilder;No string building in hot code.
+M:System.String.Format(System.String,System.Object);No string formatting in hot code.
+M:System.String.Format(System.String,System.Object,System.Object);No string formatting in hot code.
+M:System.String.Format(System.String,System.Object[]);No string formatting in hot code.
+M:System.String.Concat(System.Object,System.Object);No string building in hot code.
+P:System.DateTime.Now;Use Clock.Now.
+P:System.DateTime.UtcNow;Use Clock.Now.

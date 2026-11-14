@@ -1,0 +1,249 @@
+@using System.Globalization
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using SenX.Monitor.Contracts
+@implements IDisposable
+@inject IMonitorServers Servers
+@inject IAuthorizationService Authorization
+@inject AuthenticationStateProvider Authentication
+
+<p class="monitor-hint">Which plugins change the game's own methods. An audit measures what those changes cost, by splitting a call into plugin prefixes, the original and plugin postfixes.</p>
+
+@if (_message != null)
+{
+    <p class="monitor-notice">@_message</p>
+}
+
+@if (_audit is { State: RunState.Finished } audit)
+{
+    <section>
+        <h2>Last audit, over @audit.Seconds s</h2>
+        <p class="monitor-hint">Times are per frame, added up across threads. A method with several plugins has their time together, because Monitor can't tell one plugin's prefix from another's. A transpiler's changes are inside the original, so they can't be split out.</p>
+        <table class="monitor-table">
+            <thead><tr><th>Method</th><th>Plugins</th><th>Calls/f</th><th>Prefixes ms/f</th><th>Original ms/f</th><th>Postfixes ms/f</th></tr></thead>
+            <tbody>
+                @foreach (AuditRow row in audit.Rows)
+                {
+                    <tr>
+                        <td>@row.Method@(row.Transpiled ? " (transpiled)" : null)</td>
+                        <td>@(row.Problem ?? string.Join(", ", row.Plugins))</td>
+                        <td>@Num(row.CallsPerFrame, "0.#")</td>
+                        <td>@Num(row.PrefixMs, "0.000")</td>
+                        <td>@Num(row.OriginalMs, "0.000")</td>
+                        <td>@Num(row.PostfixMs, "0.000")</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </section>
+}
+
+@if (_lost.Count > 0)
+{
+    <section>
+        <h2>Calls Monitor can't time</h2>
+        <p class="monitor-hint">These calls have gone from methods another plugin rewrote, so Monitor can't see them, and what runs there reads low or empty on every chart and run. The server isn't affected.</p>
+        <table class="monitor-table">
+            <thead><tr><th>Call</th><th>In</th><th>Timed</th><th>Method rewritten by</th></tr></thead>
+            <tbody>
+                @foreach (LostSiteRow site in _lost)
+                {
+                    <tr><td>@site.Site</td><td>@site.Method</td><td>@site.Patched of @site.Expected</td><td>@site.TakenBy</td></tr>
+                }
+            </tbody>
+        </table>
+    </section>
+}
+
+@if (_methods.Count > 0)
+{
+    <div class="monitor-columns">
+        <section>
+            <h2>By plugin</h2>
+            <table class="monitor-table">
+                <thead><tr><th>Plugin</th><th>Methods</th><th>Prefixes</th><th>Postfixes</th><th>Transpilers</th></tr></thead>
+                <tbody>
+                    @foreach (IGrouping<string, (PatchedMethodRow Method, PatchEntryRow Patch)> plugin in ByPlugin)
+                    {
+                        <tr>
+                            <td>@plugin.Key</td>
+                            <td>@plugin.Select(row => row.Method).Distinct().Count()</td>
+                            <td>@plugin.Count(row => row.Patch.Kind == PatchKinds.Prefix)</td>
+                            <td>@plugin.Count(row => row.Patch.Kind == PatchKinds.Postfix)</td>
+                            <td>@plugin.Count(row => row.Patch.Kind == PatchKinds.Transpiler)</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </section>
+    </div>
+
+    <div class="monitor-row">
+        <label>Find <input type="search" @bind="_filter" @bind:event="oninput" /></label>
+        @if (_canAudit)
+        {
+            <label>Audit for <input type="number" min="1" max="120" @bind="_seconds" /> seconds</label>
+            <button type="button" disabled="@(_auditing || _chosen.Count == 0)" @onclick="AuditAsync">@(_auditing ? "Auditing..." : "Audit " + _chosen.Count + " chosen")</button>
+        }
+    </div>
+
+    <table class="monitor-table">
+        <thead><tr>@if (_canAudit) { <th></th> }<th>Method</th><th>Patched by</th></tr></thead>
+        <tbody>
+            @foreach (PatchedMethodRow method in Shown)
+            {
+                <tr>
+                    @if (_canAudit)
+                    {
+                        <td><input type="checkbox" aria-label="Audit this method" checked="@_chosen.Contains(method.Method)" disabled="@(!_chosen.Contains(method.Method) && _chosen.Count >= MaxChosen)" @onchange="() => Toggle(method.Method)" /></td>
+                    }
+                    <td>@method.Method</td>
+                    <td>@string.Join(", ", method.Patches.Select(patch => patch.Plugin + " " + patch.Kind.ToLowerInvariant()))</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private const int MaxChosen = 8;
+    private const int MaxRowsShown = 200;
+
+    private static readonly TimeSpan s_pollEvery = TimeSpan.FromSeconds(2);
+
+    private readonly CancellationTokenSource _closing = new();
+    private readonly HashSet<string> _chosen = [];
+    private List<PatchedMethodRow> _methods = [];
+    private List<LostSiteRow> _lost = [];
+    private AuditResultResponse? _audit;
+    private string? _loadedServer;
+    private string? _message;
+    private string _filter = string.Empty;
+    private int _seconds = 30;
+    private bool _canAudit;
+    private bool _auditing;
+
+    [Parameter, EditorRequired] public MonitorServer Server { get; set; } = null!;
+
+    private IEnumerable<IGrouping<string, (PatchedMethodRow Method, PatchEntryRow Patch)>> ByPlugin => _methods
+        .SelectMany(method => method.Patches.Select(patch => (method, patch)))
+        .GroupBy(row => row.patch.Plugin)
+        .OrderByDescending(group => group.Count());
+
+    private IEnumerable<PatchedMethodRow> Shown => _methods
+        .Where(method => _filter.Length == 0
+            || method.Method.Contains(_filter, StringComparison.OrdinalIgnoreCase)
+            || method.Patches.Any(patch => patch.Plugin.Contains(_filter, StringComparison.OrdinalIgnoreCase)))
+        .Take(MaxRowsShown);
+
+    protected override async Task OnInitializedAsync() => _canAudit = await MayAuditAsync();
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (Server.HistoryId == _loadedServer)
+            return;
+
+        _loadedServer = Server.HistoryId;
+        _methods = [];
+        _lost = [];
+        _audit = null;
+        _chosen.Clear();
+        _message = null;
+
+        try
+        {
+            var methods = new List<PatchedMethodRow>();
+
+            while (true)
+            {
+                PatchListResponse page = await Servers.ListPatchesAsync(Server.Id, new PatchListRequest { Skip = methods.Count }, _closing.Token);
+                _lost = page.LostSites;
+                methods.AddRange(page.Methods);
+
+                if (page.Methods.Count == 0 || methods.Count >= page.Total)
+                    break;
+            }
+
+            _methods = methods;
+            _audit = await Servers.AuditResultAsync(Server.Id, new AuditResultRequest(), _closing.Token);
+
+            if (_methods.Count == 0)
+                _message = "No other plugin has patched anything on this server.";
+        }
+        catch (Exception exception) when (exception is InvalidOperationException or TimeoutException)
+        {
+            _message = "The server didn't answer: " + exception.Message;
+        }
+        catch (OperationCanceledException)
+        {
+            // The page closed.
+        }
+    }
+
+    private void Toggle(string method)
+    {
+        if (!_chosen.Remove(method) && _chosen.Count < MaxChosen)
+            _chosen.Add(method);
+    }
+
+    private async Task<bool> MayAuditAsync()
+    {
+        AuthenticationState state = await Authentication.GetAuthenticationStateAsync();
+        return (await Authorization.AuthorizeAsync(state.User, MonitorPolicies.Control)).Succeeded;
+    }
+
+    private async Task AuditAsync()
+    {
+        // A hidden button isn't access control, and this rebuilds methods on a running server.
+        if (_auditing || !await MayAuditAsync())
+            return;
+
+        _message = null;
+        _auditing = true;
+
+        try
+        {
+            var request = new AuditStartRequest { Methods = [.. _chosen], Seconds = Math.Clamp(_seconds, 1, 120) };
+            AuditStartResponse started = await Servers.StartAuditAsync(Server.Id, request, _closing.Token);
+
+            if (!started.Started)
+            {
+                _message = started.Message ?? "The audit didn't start.";
+                return;
+            }
+
+            while (true)
+            {
+                await Task.Delay(s_pollEvery, _closing.Token);
+
+                AuditResultResponse result = await Servers.AuditResultAsync(Server.Id, new AuditResultRequest(), _closing.Token);
+
+                if (result.State == RunState.Running)
+                    continue;
+
+                _audit = result;
+                return;
+            }
+        }
+        catch (Exception exception) when (exception is InvalidOperationException or TimeoutException)
+        {
+            _message = "The server stopped answering: " + exception.Message;
+        }
+        catch (OperationCanceledException)
+        {
+            // The page closed, and the audit finishes by itself.
+        }
+        finally
+        {
+            _auditing = false;
+        }
+    }
+
+    private static string Num(double value, string format) => value.ToString(format, CultureInfo.InvariantCulture);
+
+    public void Dispose()
+    {
+        _closing.Cancel();
+        _closing.Dispose();
+    }
+}
