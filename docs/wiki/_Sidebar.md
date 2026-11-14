@@ -17,6 +17,7 @@
 - [API](API)
 
 **Help**
+- [Comparison](Comparison)
 - [Troubleshooting](Troubleshooting)
 - [FAQ](FAQ)
 - [Glossary](Glossary)

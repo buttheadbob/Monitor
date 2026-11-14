@@ -9,7 +9,7 @@ Monitor has two parts that work together:
 - **Magnetar plugin.** It runs on each server that uses the Magnetar plugin loader. It measures, and it answers chat commands.
 - **Quasar plugin.** It runs in the Quasar server manager. It keeps history, draws charts and sends alerts for your Magnetar servers.
 
-**Status:** pre-release. Both parts passed tests on test servers. They have not run on a live server with real players yet.
+**Status:** pre-release. Both parts have been tested on test servers and on the author's own live servers.
 
 **Source:** https://github.com/buttheadbob/Monitor
 

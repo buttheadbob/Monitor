@@ -19,7 +19,7 @@ You can use the Magnetar plugin alone. Then all chat commands work, and the serv
 
 ## Status
 
-Pre-release. Both parts passed tests on test servers. They have not yet run on a live server with real players.
+Pre-release. Both parts have been tested on test servers and on the author's own live servers.
 
 A Torch build exists as source code, but it is not supported. Quasar and Magnetar are the supported platforms.
 
@@ -38,6 +38,7 @@ A Torch build exists as source code, but it is not supported. Quasar and Magneta
 | [Settings](Settings) | Change what counts as lag, what players can run, and how much history to keep. |
 | [API](API) | Use Monitor's data from your own plugin. |
 | [Troubleshooting](Troubleshooting) | Fix a problem. |
+| [Comparison](Comparison) | Compare Monitor with Quasar's built-in monitoring and the Torch Profiler. |
 | [FAQ](FAQ) | Find short answers to common questions. |
 | [Glossary](Glossary) | Look up a word. |
 
