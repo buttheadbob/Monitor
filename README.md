@@ -623,3 +623,5 @@ There is a Torch build in `src/SenX.Monitor.Torch`. It is only available as sour
 ## License
 
 MIT. See [LICENSE](LICENSE).
+
+Monitor's charts use [uPlot](https://github.com/leeoniya/uPlot) 1.6.32 by Leon Sorokin, under the MIT licence. The unchanged release files and their licence are in `src/SenX.Monitor/wwwroot/lib/uplot`.
