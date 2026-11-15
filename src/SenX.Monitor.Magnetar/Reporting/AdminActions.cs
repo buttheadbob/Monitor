@@ -1,3 +1,4 @@
+using System.Globalization;
 using SenX.Monitor.Contracts;
 using SenX.Monitor.Core;
 
@@ -31,7 +32,7 @@ internal static class AdminActions
             return "Only a player has GPS markers.";
 
         int removed = GpsMarkers.Clean(identityId);
-        return removed == 1 ? "Removed 1 marker." : "Removed " + removed.ToString() + " markers.";
+        return removed == 1 ? "Removed 1 marker." : "Removed " + removed.ToString(CultureInfo.InvariantCulture) + " markers.";
     }
 
     public static string Everything(bool on)

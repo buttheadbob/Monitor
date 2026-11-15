@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 
 namespace SenX.Monitor.Core;
 
@@ -95,9 +96,9 @@ public sealed class CaptureArgs
                 return null;
             }
 
-            if (!int.TryParse(word.Substring("--secs=".Length), out int seconds) || seconds < 1 || seconds > MaxWindowSeconds)
+            if (!int.TryParse(word.Substring("--secs=".Length), NumberStyles.Integer, CultureInfo.InvariantCulture, out int seconds) || seconds < 1 || seconds > MaxWindowSeconds)
             {
-                error = "--secs must be from 1 to " + MaxWindowSeconds.ToString() + ".";
+                error = "--secs must be from 1 to " + MaxWindowSeconds.ToString(CultureInfo.InvariantCulture) + ".";
                 return null;
             }
 
@@ -122,22 +123,22 @@ public sealed class CaptureArgs
             switch (name.ToLowerInvariant())
             {
                 case "--secs":
-                    if (!int.TryParse(value, out int seconds) || seconds < 1 || seconds > MaxSeconds)
-                        error = "--secs must be from 1 to " + MaxSeconds.ToString() + ".";
+                    if (!int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out int seconds) || seconds < 1 || seconds > MaxSeconds)
+                        error = "--secs must be from 1 to " + MaxSeconds.ToString(CultureInfo.InvariantCulture) + ".";
                     else
                         args.Seconds = seconds;
                     break;
 
                 case "--top":
-                    if (!int.TryParse(value, out int top) || top < 1 || top > MaxTop)
-                        error = "--top must be from 1 to " + MaxTop.ToString() + ".";
+                    if (!int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out int top) || top < 1 || top > MaxTop)
+                        error = "--top must be from 1 to " + MaxTop.ToString(CultureInfo.InvariantCulture) + ".";
                     else
                         args.Top = top;
                     break;
 
                 case "--grid":
                 case "--entity":
-                    if (!long.TryParse(value, out long grid) || grid == 0L)
+                    if (!long.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out long grid) || grid == 0L)
                         error = name + " needs a grid's entity id.";
                     else
                         args.GridId = grid;
@@ -182,7 +183,7 @@ public sealed class CaptureArgs
                     break;
 
                 case "--inspect":
-                    if (!int.TryParse(value, out int inspect) || inspect < 0)
+                    if (!int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out int inspect) || inspect < 0)
                         error = "--inspect needs a cluster number from the last result.";
                     else
                         args.Inspect = inspect;
@@ -191,7 +192,7 @@ public sealed class CaptureArgs
                 case "--takeme":
                     if (value.Equals("done", System.StringComparison.OrdinalIgnoreCase))
                         args.TakeMeDone = true;
-                    else if (!int.TryParse(value, out int takeMe) || takeMe < 0)
+                    else if (!int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out int takeMe) || takeMe < 0)
                         error = "--takeme needs a cluster number from the last result, or done.";
                     else
                         args.TakeMe = takeMe;

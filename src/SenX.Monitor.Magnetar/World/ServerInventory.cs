@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using Sandbox.Game.World;
 using SenX.Monitor.Contracts;
 using VRage.Game;
@@ -37,7 +38,7 @@ internal static partial class ServerInventory
 
             foreach (MyObjectBuilder_Checkpoint.ModItem mod in loaded)
             {
-                string id = mod.PublishedFileId.ToString();
+                string id = mod.PublishedFileId.ToString(CultureInfo.InvariantCulture);
                 mods.Add(new RuntimeItem { Id = id, Name = string.IsNullOrEmpty(mod.FriendlyName) ? id : mod.FriendlyName });
             }
 
