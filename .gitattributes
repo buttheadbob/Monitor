@@ -1,0 +1,2 @@
+# Third-party files are kept byte for byte as released, so their hashes match the official downloads.
+src/SenX.Monitor/wwwroot/lib/** -text
