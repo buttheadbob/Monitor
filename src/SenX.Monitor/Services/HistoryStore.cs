@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Globalization;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using SenX.Monitor.Api;
@@ -223,6 +224,13 @@ public sealed class HistoryStore(string directory, MonitorSettings settings, ILo
     private static readonly TimeSpan s_recent = TimeSpan.FromHours(1);
     private static readonly TimeSpan s_recentCensus = TimeSpan.FromHours(24);
     private static readonly TimeSpan s_pruneEvery = TimeSpan.FromHours(1);
+
+    // File names sort in time order, so they must use the same calendar whatever the culture: a Thai or Persian
+    // year would sort after or before every other file, and pruning would delete them all.
+    private const string DayFiles = "yyyyMMdd";
+    private const string HourFiles = "yyyyMMddHH";
+
+    private static string FileName(DateTime time, string format) => time.ToString(format, CultureInfo.InvariantCulture);
     private static readonly TimeSpan s_noteLastSeenEvery = TimeSpan.FromHours(1);
 
     // Bytes in a stored group row after its name: four times, its key, its traffic and its two counts.
@@ -698,8 +706,8 @@ public sealed class HistoryStore(string directory, MonitorSettings settings, ILo
         bool seconds = to - from <= s_seconds && DateTime.UtcNow - from <= s_seconds;
 
         List<HistoryPoint> points = seconds
-            ? ReadPoints(server, "seconds", from, to, "yyyyMMddHH")
-            : ReadPoints(server, "minutes", from, to, "yyyyMMdd");
+            ? ReadPoints(server, "seconds", from, to, HourFiles)
+            : ReadPoints(server, "minutes", from, to, DayFiles);
 
         return Thin(points, maxPoints);
     }
@@ -1035,7 +1043,7 @@ public sealed class HistoryStore(string directory, MonitorSettings settings, ILo
         server.Recent.Add(point);
         Trim(server.Recent, point.Time - s_recent, row => row.Time);
 
-        Append(server, "seconds", point.Time.ToString("yyyyMMddHH"), writer => WritePoint(writer, point));
+        Append(server, "seconds", FileName(point.Time, HourFiles), writer => WritePoint(writer, point));
 
         Roll(server, server.Minute, point, new DateTime(point.Time.Ticks - (point.Time.Ticks % TimeSpan.TicksPerMinute), DateTimeKind.Utc));
     }
@@ -1045,7 +1053,7 @@ public sealed class HistoryStore(string directory, MonitorSettings settings, ILo
         if (bucket.Count > 0 && start != bucket.Start)
         {
             HistoryPoint finished = bucket.Finish();
-            Append(server, "minutes", finished.Time.ToString("yyyyMMdd"), writer => WritePoint(writer, finished));
+            Append(server, "minutes", FileName(finished.Time, DayFiles), writer => WritePoint(writer, finished));
         }
 
         bucket.Start = start;
@@ -1056,7 +1064,7 @@ public sealed class HistoryStore(string directory, MonitorSettings settings, ILo
     {
         server.RecentCensus.Add(row);
         Trim(server.RecentCensus, row.Time - s_recentCensus, stored => stored.Time);
-        Append(server, "census", row.Time.ToString("yyyyMMdd"), writer => WriteCensus(writer, row));
+        Append(server, "census", FileName(row.Time, DayFiles), writer => WriteCensus(writer, row));
     }
 
     private void AddGroup(ServerHistory server, StoredGroup row)
@@ -1083,13 +1091,13 @@ public sealed class HistoryStore(string directory, MonitorSettings settings, ILo
             return;
 
         server.PendingSample = row.Time;
-        Append(server, "groups", row.Time.ToString("yyyyMMdd"), writer => WriteGroup(writer, row));
+        Append(server, "groups", FileName(row.Time, DayFiles), writer => WriteGroup(writer, row));
     }
 
     private void AddMarker(ServerHistory server, StoredMarker row)
     {
         server.Markers.Add(row);
-        Append(server, "markers", row.Time.ToString("yyyyMMdd"), writer => WriteMarker(writer, row));
+        Append(server, "markers", FileName(row.Time, DayFiles), writer => WriteMarker(writer, row));
         MarkerAdded?.Invoke(server.Id, row);
     }
 
@@ -1119,7 +1127,7 @@ public sealed class HistoryStore(string directory, MonitorSettings settings, ILo
         server.RecentPlayers.AddRange(rows);
         Trim(server.RecentPlayers, time - s_recent, row => row.Time);
 
-        Append(server, "players", time.ToString("yyyyMMdd"), writer =>
+        Append(server, "players", FileName(time, DayFiles), writer =>
         {
             foreach (StoredPlayer row in rows)
                 WritePlayer(writer, row);
@@ -1132,7 +1140,7 @@ public sealed class HistoryStore(string directory, MonitorSettings settings, ILo
         server.RecentFactions.AddRange(factionRows);
         Trim(server.RecentFactions, time - s_recent, row => row.Time);
 
-        Append(server, "factions", time.ToString("yyyyMMdd"), writer =>
+        Append(server, "factions", FileName(time, DayFiles), writer =>
         {
             foreach (StoredFaction row in factionRows)
                 WriteFaction(writer, row);
@@ -1503,10 +1511,10 @@ public sealed class HistoryStore(string directory, MonitorSettings settings, ILo
         reader.ReadString());
 
     private List<HistoryPoint> ReadPoints(ServerHistory server, string tier, DateTime from, DateTime to, string fileFormat) =>
-        ReadFiles(server, tier, from.ToString(fileFormat), to.ToString(fileFormat), from, to, ReadPoint, point => point.Time);
+        ReadFiles(server, tier, FileName(from, fileFormat), FileName(to, fileFormat), from, to, ReadPoint, point => point.Time);
 
     private List<T> ReadDays<T>(ServerHistory server, string tier, DateTime from, DateTime to, Func<BinaryReader, T> read, Func<T, DateTime> timeOf) =>
-        ReadFiles(server, tier, from.ToString("yyyyMMdd"), to.ToString("yyyyMMdd"), from, to, read, timeOf);
+        ReadFiles(server, tier, FileName(from, DayFiles), FileName(to, DayFiles), from, to, read, timeOf);
 
     private List<T> ReadFiles<T>(ServerHistory server, string tier, string first, string last, DateTime from, DateTime to, Func<BinaryReader, T> read, Func<T, DateTime> timeOf)
     {
@@ -1568,9 +1576,9 @@ public sealed class HistoryStore(string directory, MonitorSettings settings, ILo
 
         Guarded(() =>
         {
-            string oldestDay = (now - settings.Retention).ToString("yyyyMMdd");
+            string oldestDay = FileName(now - settings.Retention, DayFiles);
 
-            Prune(server, "seconds", (now - s_seconds).ToString("yyyyMMddHH"));
+            Prune(server, "seconds", FileName(now - s_seconds, HourFiles));
             Prune(server, "minutes", oldestDay);
             Prune(server, "census", oldestDay);
             Prune(server, "groups", oldestDay);
