@@ -59,8 +59,17 @@ internal static class Allocation
         work();
         work();
 
-        long before = GcProbe.AllocatedOnThread();
-        work();
-        return GcProbe.AllocatedOnThread() - before;
+        // The fewest bytes of three tries. Code that allocates does so every time, but the runtime can allocate once
+        // on this thread for itself, such as late JIT work on a busy machine, and that mustn't fail a test.
+        long fewest = long.MaxValue;
+
+        for (int attempt = 0; attempt < 3 && fewest > 0L; attempt++)
+        {
+            long before = GcProbe.AllocatedOnThread();
+            work();
+            fewest = Math.Min(fewest, GcProbe.AllocatedOnThread() - before);
+        }
+
+        return fewest;
     }
 }
