@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using PluginSdk.Commands;
 using Sandbox.Game.Entities;
@@ -233,10 +234,10 @@ internal static class LagRuns
     {
         MyPlayerCollection players = MySession.Static.Players;
 
-        if (text.StartsWith("sid/", StringComparison.OrdinalIgnoreCase) && ulong.TryParse(text.Substring(4), out ulong steamId))
+        if (text.StartsWith("sid/", StringComparison.OrdinalIgnoreCase) && ulong.TryParse(text.Substring(4), NumberStyles.Integer, CultureInfo.InvariantCulture, out ulong steamId))
             return players.TryGetIdentity(players.TryGetIdentityId(steamId));
 
-        if (long.TryParse(text, out long identityId))
+        if (long.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out long identityId))
             return players.TryGetIdentity(identityId);
 
         return players.GetAllIdentities().FirstOrDefault(identity => string.Equals(identity.DisplayName, text, StringComparison.OrdinalIgnoreCase));
@@ -248,7 +249,7 @@ internal static class LagRuns
         {
             if (string.Equals(faction.Value.Tag, text, StringComparison.OrdinalIgnoreCase)
                 || string.Equals(faction.Value.Name, text, StringComparison.OrdinalIgnoreCase)
-                || faction.Key.ToString() == text)
+                || faction.Key.ToString(CultureInfo.InvariantCulture) == text)
             {
                 return faction.Value;
             }

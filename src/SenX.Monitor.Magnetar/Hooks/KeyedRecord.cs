@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Reflection;
 using SenX.Monitor.Core;
 
@@ -116,7 +117,7 @@ internal static class KeyNames
             case MethodBase method:
                 return (method.DeclaringType?.Name ?? "?") + "." + method.Name;
             default:
-                return value.ToString("x");
+                return value.ToString("x", CultureInfo.InvariantCulture);
         }
     }
 }

@@ -793,7 +793,7 @@ internal sealed class ServerApi : IMonitorServerApi
             return ReplyBuilder.Refused(request, active.Problem ?? "The run didn't start.", active.RetryAfter);
 
         return result.State == RunState.Finished
-            ? ReplyBuilder.FromRun(request, result, Volatile.Read(ref active.RunId).ToString(), DateTime.UtcNow)
+            ? ReplyBuilder.FromRun(request, result, Volatile.Read(ref active.RunId).ToString(CultureInfo.InvariantCulture), DateTime.UtcNow)
             : ReplyBuilder.Failed(request, result.Problem ?? "The run failed. The details are in the server log.");
     }
 
@@ -865,12 +865,12 @@ internal sealed class ServerApi : IMonitorServerApi
         }
 
         if (result.State == RunState.Finished)
-            Volatile.Write(ref _lastRun, new LastRun(result, runId.ToString(), DateTime.UtcNow));
+            Volatile.Write(ref _lastRun, new LastRun(result, runId.ToString(CultureInfo.InvariantCulture), DateTime.UtcNow));
 
         finished?.Done.TrySetResult(result);
 
         if (result.State == RunState.Finished)
-            Raise(RunFinished, new MonitorRunFinished(string.Empty, runId.ToString()));
+            Raise(RunFinished, new MonitorRunFinished(string.Empty, runId.ToString(CultureInfo.InvariantCulture)));
     }
 
     private async Task<MonitorReply> FromHistoryAsync(MonitorRequest request, CancellationToken cancellationToken)

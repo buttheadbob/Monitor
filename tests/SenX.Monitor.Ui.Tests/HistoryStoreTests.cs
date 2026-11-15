@@ -559,6 +559,33 @@ public sealed class HistoryStoreTests : IDisposable
     }
 
     [Fact]
+    public void A_change_of_culture_keeps_history_and_names_files_the_same()
+    {
+        System.Globalization.CultureInfo before = System.Globalization.CultureInfo.CurrentCulture;
+
+        try
+        {
+            System.Globalization.CultureInfo.CurrentCulture = new System.Globalization.CultureInfo("en-US");
+            NewStore().Add(Server, Batch(0, 10), Name);
+
+            // The Thai culture's calendar counts years from 543 BC. A new store prunes on its first batch.
+            System.Globalization.CultureInfo.CurrentCulture = new System.Globalization.CultureInfo("th-TH");
+            NewStore().Add(Server, Batch(10, 10), Name);
+
+            string year = s_started.Year.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            string[] files = Directory.GetFiles(Path.Combine(_directory, StateFiles.FolderFor(Server), "seconds"), "*.bin");
+
+            Assert.NotEmpty(files);
+            Assert.All(files, file => Assert.StartsWith(year, Path.GetFileName(file), StringComparison.Ordinal));
+            Assert.Equal(20, NewStore().Points(Server, s_started, s_started.AddMinutes(5), 100).Count);
+        }
+        finally
+        {
+            System.Globalization.CultureInfo.CurrentCulture = before;
+        }
+    }
+
+    [Fact]
     public void History_is_kept_for_3_days_unless_changed()
     {
         Assert.Equal(3, new MonitorSettings(_directory).RetentionDays);

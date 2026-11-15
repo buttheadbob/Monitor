@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Globalization;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using SenX.Monitor.Contracts;
@@ -187,7 +188,7 @@ public sealed class MonitorCollector(
             }
 
             await ResolveNamesAsync(server, batch, cancellationToken).ConfigureAwait(false);
-            store.Add(history, batch, (kind, key) => NameOf(history, kind, key) ?? key.ToString(), (kind, key) => NameOf(history, kind, key));
+            store.Add(history, batch, (kind, key) => NameOf(history, kind, key) ?? key.ToString(CultureInfo.InvariantCulture), (kind, key) => NameOf(history, kind, key));
             incidents.Apply(history, batch);
 
             if (batch.Markers.Any(marker => marker.Kind == HistoryMarkerKind.LagTripped))

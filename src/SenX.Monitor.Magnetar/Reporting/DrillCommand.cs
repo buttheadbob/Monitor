@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using PluginSdk.Commands;
 using SenX.Monitor.Contracts;
@@ -25,7 +26,7 @@ internal static class DrillCommand
         {
             if (word.StartsWith("--secs=", StringComparison.OrdinalIgnoreCase))
             {
-                if (!int.TryParse(word.Substring("--secs=".Length), out seconds))
+                if (!int.TryParse(word.Substring("--secs=".Length), NumberStyles.Integer, CultureInfo.InvariantCulture, out seconds))
                     return "--secs needs a number.";
             }
             else if (word.StartsWith("--", StringComparison.Ordinal))
@@ -43,7 +44,7 @@ internal static class DrillCommand
 
         string text = string.Join(" ", name);
 
-        if (int.TryParse(text, out int row))
+        if (int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out int row))
             return FromNumber(context, row, seconds);
 
         List<DrillRoot> matches = DrillDown.Roots(text);

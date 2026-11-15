@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Reflection;
 using System.Threading;
@@ -54,7 +55,7 @@ internal static partial class PatchList
             .OrderByDescending(plugin => plugin.Count());
 
         foreach (var plugin in plugins)
-            table.Row(plugin.Key, plugin.Select(entry => entry.Method).Distinct().Count().ToString(), plugin.Count().ToString());
+            table.Row(plugin.Key, plugin.Select(entry => entry.Method).Distinct().Count().ToString(CultureInfo.InvariantCulture), plugin.Count().ToString(CultureInfo.InvariantCulture));
 
         return report;
     }
